@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/browser-agent-prototype/contracts/payload-schema.json",
+  "title": "SanitizedPayloadEnvelope",
+  "description": "Standardized client-side sanitized payload transmitted to the remote VLM reasoning service.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "cycle_id",
+    "token_manifest",
+    "sanitized_dom_tree",
+    "metrics"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.5.0",
+      "description": "Must match the server-side parser specification version."
+    },
+    "cycle_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this perception-action cycle."
+    },
+    "token_manifest": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "<REDACTED_FINANCIAL>",
+          "<REDACTED_IDENTITY>",
+          "<REDACTED_CONTACT>",
+          "<REDACTED_CREDENTIAL>"
+        ]
+      },
+      "description": "Enumerated manifest of semantic redaction tokens active in this payload."
+    },
+    "sanitized_dom_tree": {
+      "type": "object",
+      "required": ["node_id", "tag", "bounds"],
+      "properties": {
+        "node_id": { "type": "string" },
+        "tag": { "type": "string" },
+        "role": { "type": "string" },
+        "bounds": {
+          "type": "object",
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number" },
+            "height": { "type": "number" }
+          }
+        },
+        "text": { "type": "string" },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/properties/sanitized_dom_tree" }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["sanitization_duration_ms", "entities_redacted_count"],
+      "properties": {
+        "sanitization_duration_ms": { "type": "number", "maximum": 500 },
+        "entities_redacted_count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "additionalProperties": false
+}
