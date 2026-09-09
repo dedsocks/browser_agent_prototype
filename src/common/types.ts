@@ -146,4 +146,141 @@ export interface DomSanitizationFailureResponse {
 export type ExtensionInternalMessage =
   | ProcessDomSnapshotRequest
   | DomSanitizationSuccessResponse
-  | DomSanitizationFailureResponse;
+  | DomSanitizationFailureResponse
+  | ExecuteActionMessage
+  | ExecuteActionResponse
+  | TriggerInterventionUiMessage
+  | TriggerInterventionUiResponse
+  | ClearInterventionUiMessage
+  | ResolveTargetElementMessage
+  | ResolveTargetElementResponse;
+
+// Agent Controller & Lifecycle (Constitution Articles XIII, XIV, XV, XVI)
+export enum TaskState {
+  IDLE = "IDLE",
+  OBSERVING = "OBSERVING",
+  SANITIZING = "SANITIZING",
+  AWAITING_REASONING = "AWAITING_REASONING",
+  VALIDATING_ACTION = "VALIDATING_ACTION",
+  EXECUTING_ACTION = "EXECUTING_ACTION",
+  PAUSED = "PAUSED",
+  INTERVENTION_REQUIRED = "INTERVENTION_REQUIRED",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED"
+}
+
+export type ActionType = "click" | "type" | "scroll" | "navigate";
+
+export interface TargetSelector {
+  nodeId?: string;
+  cssSelector?: string;
+  xpath?: string;
+  expectedText?: string;
+  expectedBounds?: SimpleBounds;
+}
+
+export interface AgentAction {
+  id: string;
+  type: ActionType;
+  target?: TargetSelector;
+  value?: string;
+  scrollOffset?: { x: number; y: number };
+  thought?: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errorCode?: "UNSUPPORTED_ACTION" | "TARGET_NOT_FOUND" | "TARGET_NOT_VISIBLE" | "GEOMETRIC_MISMATCH" | "SENSITIVE_TARGET_BLOCKED" | "VALIDATION_FAULT";
+  diagnosticMessage?: string;
+  requiresIntervention?: boolean;
+  interventionReason?: string;
+  targetElementBounds?: SimpleBounds;
+}
+
+export interface HumanInterventionContext {
+  cycleId: string;
+  targetFieldId?: string;
+  targetFieldName?: string;
+  secretType: "PASSWORD" | "CREDENTIAL" | "PAYMENT_CARD" | "MFA_CODE" | "MANUAL_CAPTCHA";
+  promptMessage: string;
+  timestamp: string;
+}
+
+export interface StepLogEntry {
+  stepIndex: number;
+  cycleId: string;
+  timestamp: string;
+  state: TaskState;
+  actionProposed?: AgentAction;
+  validationResult?: ValidationResult;
+  executionOutcome?: {
+    success: boolean;
+    error?: string;
+    durationMs: number;
+  };
+  pageUrl: string;
+}
+
+export interface TaskSession {
+  sessionId: string;
+  goal: string;
+  state: TaskState;
+  activeUrl: string;
+  pausedUrl?: string;
+  urlMismatchWarning?: boolean;
+  currentCycleId?: string;
+  interventionContext?: HumanInterventionContext;
+  stepHistory: StepLogEntry[];
+  totalCyclesCompleted: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+// Internal Action Execution Contracts
+export interface ExecuteActionMessage {
+  type: "EXECUTE_ACTION";
+  cycleId: string;
+  action: AgentAction;
+  validationResult: ValidationResult;
+}
+
+export interface ExecuteActionResponse {
+  type: "EXECUTE_ACTION_RESULT";
+  cycleId: string;
+  success: boolean;
+  error?: string;
+  durationMs: number;
+}
+
+export interface TriggerInterventionUiMessage {
+  type: "TRIGGER_INTERVENTION_UI";
+  context: HumanInterventionContext;
+}
+
+export interface TriggerInterventionUiResponse {
+  type: "INTERVENTION_UI_ACK";
+  acknowledged: boolean;
+}
+
+export interface ClearInterventionUiMessage {
+  type: "CLEAR_INTERVENTION_UI";
+}
+
+export interface ResolveTargetElementMessage {
+  type: "RESOLVE_TARGET_ELEMENT";
+  target: TargetSelector;
+}
+
+export interface ResolveTargetElementResponse {
+  type?: "RESOLVE_TARGET_ELEMENT_RESPONSE";
+  found: boolean;
+  isInteractive: boolean;
+  isVisible: boolean;
+  isCredentialField: boolean;
+  currentBounds?: SimpleBounds;
+  nodeId?: string;
+  tagName?: string;
+  error?: string;
+}

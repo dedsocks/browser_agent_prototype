@@ -65,5 +65,27 @@ export const PERFORMANCE_BUDGETS = {
   MAX_CYCLE_LATENCY_MS: 2000,
   MAX_SANITIZATION_DURATION_MS: 500,
   MAX_OVERLAY_PAINT_MS: 50,
-  OVERLAY_COALESCE_INTERVAL_MS: 100
+  OVERLAY_COALESCE_INTERVAL_MS: 100,
+  MAX_ACTION_VALIDATION_MS: 50,
+  MAX_ACTION_EXECUTION_MS: 100
 };
+
+// Action Allowlist & Execution Safeguards (Constitution Article XIV)
+export const ALLOWED_ACTION_TYPES = ["click", "type", "scroll", "navigate"] as const;
+
+export const GEOMETRIC_TOLERANCE_RATIO = 0.25; // 25% margin for dynamic element shifts
+
+export const CREDENTIAL_INPUT_PATTERNS = [
+  /password/i,
+  /passwd/i,
+  /pwd/i,
+  /secret/i,
+  /one-time-code/i,
+  /otp/i,
+  /pin\b/i,
+  /cvv/i,
+  /cvc/i,
+  /security-code/i,
+  /card-number/i,
+  /cc-number/i
+];

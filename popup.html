@@ -185,6 +185,33 @@
     <div id="status-text" class="status-info">Privacy Boundary Armed (Fail-Closed)</div>
   </div>
 
+  <div style="margin-bottom: 12px;">
+    <label for="task-input" style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;">
+      Agent Task Goal
+    </label>
+    <input type="text" id="task-input" placeholder="e.g. Find cheap flights or fill form" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-size: 12px; margin-bottom: 8px;" />
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+      <button id="btn-start-task" class="btn-primary" style="background: #10B981;">
+        ▶ Start Task
+      </button>
+      <button id="btn-pause-task" class="btn-secondary">
+        ⏸ Pause
+      </button>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+      <button id="btn-resume-task" class="btn-secondary">
+        ⏯ Resume
+      </button>
+      <button id="btn-abort-task" class="btn-secondary" style="color: #EF4444;">
+        ⏹ Abort
+      </button>
+    </div>
+    <button id="btn-run-step" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">
+      ⚡ Run Next Cycle Step
+    </button>
+  </div>
+
   <div class="btn-group">
     <button id="btn-scan" class="btn-primary">
       🔍 Scan & Protect Active Tab

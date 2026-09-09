@@ -130,7 +130,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     }
   }
 
-  // Listen for agent perception triggers via chrome.runtime
+  // Listen for agent perception triggers and action execution via chrome.runtime
   if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
     chrome.runtime.onMessage.addListener(
       (msg: any, _sender: any, sendResponse: (response?: any) => void) => {
@@ -141,6 +141,33 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
         if (msg?.type === "CLEAR_OVERLAYS") {
           auditOverlayManager.clear();
           sendResponse({ status: "CLEARED" });
+          return false;
+        }
+        if (msg?.type === "RESOLVE_TARGET_ELEMENT") {
+          import("./target-resolver.js").then(({ resolveTargetElement }) => {
+            const res = resolveTargetElement(msg.target);
+            sendResponse(res);
+          });
+          return true;
+        }
+        if (msg?.type === "EXECUTE_ACTION") {
+          import("./action-executor.js").then(({ executeDomAction }) => {
+            executeDomAction(msg.action, msg.validationResult).then(sendResponse);
+          });
+          return true;
+        }
+        if (msg?.type === "TRIGGER_INTERVENTION_UI") {
+          import("./action-executor.js").then(({ triggerInterventionUi }) => {
+            triggerInterventionUi(msg.context);
+            sendResponse({ type: "INTERVENTION_UI_ACK", acknowledged: true });
+          });
+          return true;
+        }
+        if (msg?.type === "CLEAR_INTERVENTION_UI") {
+          import("./action-executor.js").then(({ clearInterventionUi }) => {
+            clearInterventionUi();
+            sendResponse({ status: "CLEARED" });
+          });
           return false;
         }
       }
