@@ -10,7 +10,7 @@
 
 **Purpose**: Type definitions for visual execution tiers, process results, and shadow DOM nodes
 
-- [ ] T001 [P] Define VisionTier, VisionProcessResult, and ShadowDomNodeInfo in src/common/types.ts
+- [X] T001 [P] Define VisionTier, VisionProcessResult, and ShadowDomNodeInfo in src/common/types.ts
 
 ---
 
@@ -20,8 +20,8 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete
 
-- [ ] T002 Implement recursive Shadow DOM extractor in src/content/shadow-dom-extractor.ts
-- [ ] T003 [P] Implement unit tests for Shadow DOM extractor in tests/unit/content/shadow-dom.test.ts
+- [X] T002 Implement recursive Shadow DOM extractor in src/content/shadow-dom-extractor.ts
+- [X] T003 [P] Implement unit tests for Shadow DOM extractor in tests/unit/content/shadow-dom.test.ts
 
 **Checkpoint**: Foundation ready
 
@@ -33,7 +33,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Integrate shadow-dom-extractor into dom-extractor.ts and target-resolver.ts
+- [X] T004 [US1] Integrate shadow-dom-extractor into dom-extractor.ts and target-resolver.ts
 
 ---
 
@@ -44,18 +44,18 @@
 ### Tests for User Story 2 & 3 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] [US2] Create unit tests for two-tier vision engine and WebGPU -> WASM fallback in tests/unit/vision/vision-engine.test.ts
-- [ ] T006 [P] [US3] Create unit tests for mask opacity verification in tests/unit/vision/mask-verification.test.ts
-- [ ] T007 [P] [US2] Create integration test for opaque elements fail-closed fallback in tests/integration/opaque-elements-fallback.test.ts
+- [X] T005 [P] [US2] Create unit tests for two-tier vision engine and WebGPU -> WASM fallback in tests/unit/vision/vision-engine.test.ts
+- [X] T006 [P] [US3] Create unit tests for mask opacity verification in tests/unit/vision/mask-verification.test.ts
+- [X] T007 [P] [US2] Create integration test for opaque elements fail-closed fallback in tests/integration/opaque-elements-fallback.test.ts
 
 ### Implementation for User Story 2 & 3
 
-- [ ] T008 [US2] Implement LocalVisionEngine with WebGPU and WASM execution tiers in src/vision/vision-engine.ts
-- [ ] T009 [US3] Connect LocalVisionEngine with offscreen-manager.ts for canvas masking and validation
+- [X] T008 [US2] Implement LocalVisionEngine with WebGPU and WASM execution tiers in src/vision/vision-engine.ts
+- [X] T009 [US3] Connect LocalVisionEngine with offscreen-manager.ts for canvas masking and validation
 
 ---
 
 ## Phase 5: Polish & Verification
 
-- [ ] T010 Run full Vitest test suite (`npm test`)
-- [ ] T011 Verify full build output (`npm run build`)
+- [X] T010 Run full Vitest test suite (`npm test`)
+- [X] T011 Verify full build output (`npm run build`)

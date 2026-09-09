@@ -6,6 +6,7 @@
 
 import { TargetSelector, ResolveTargetElementResponse, SimpleBounds } from "../common/types.js";
 import { CREDENTIAL_INPUT_PATTERNS } from "../common/constants.js";
+import { resolveElementInShadowRoots } from "./shadow-dom-extractor.js";
 
 /**
  * Checks if a DOM element is visible in the viewport.
@@ -99,6 +100,11 @@ export function resolveTargetElement(target?: TargetSelector): ResolveTargetElem
   if (!element && target.expectedText) {
     const buttonsAndLinks = Array.from(document.querySelectorAll("button, a, input[type='submit'], [role='button']")) as HTMLElement[];
     element = buttonsAndLinks.find(el => (el.textContent || (el as HTMLInputElement).value || "").trim().toLowerCase() === target.expectedText!.trim().toLowerCase()) || null;
+  }
+
+  // 5. Try resolving within open/attached Shadow DOM roots
+  if (!element && (target.nodeId || target.cssSelector)) {
+    element = resolveElementInShadowRoots(target.nodeId || target.cssSelector!);
   }
 
   if (!element) {

@@ -113,6 +113,8 @@ export interface DomSnapshotNode {
   bounds: SimpleBounds;
   parent_id?: string;
   children_ids: string[];
+  is_shadow_root?: boolean;
+  shadow_host_id?: string;
 }
 
 export interface DomSnapshot {
@@ -316,4 +318,26 @@ export interface CachedRegionRedaction {
   entities: DetectedEntity[];
   sanitizedNode: SanitizedDomNode;
   verifiedAt: number;
+}
+
+// Local Vision Processing & Shadow DOM (Constitution Article II, IV & V)
+export enum VisionTier {
+  TIER_1_WEBGPU = "TIER_1_WEBGPU",
+  TIER_2_WASM_CPU = "TIER_2_WASM_CPU",
+  UNAVAILABLE = "UNAVAILABLE"
+}
+
+export interface VisionProcessResult {
+  tierUsed: VisionTier;
+  success: boolean;
+  detectedRegions: SimpleBounds[];
+  maskApplied: boolean;
+  error?: string;
+  durationMs: number;
+}
+
+export interface ShadowDomNodeInfo {
+  isShadowRoot?: boolean;
+  shadowHostId?: string;
+  shadowMode?: "open" | "closed";
 }

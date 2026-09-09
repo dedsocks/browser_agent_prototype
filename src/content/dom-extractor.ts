@@ -5,6 +5,7 @@
  */
 
 import { DomSnapshot, DomSnapshotNode, SanitizedDomNode, SimpleBounds } from "../common/types.js";
+import { extractShadowSubtree } from "./shadow-dom-extractor.js";
 
 let nodeIdCounter = 0;
 
@@ -105,6 +106,14 @@ export function extractDomSnapshot(root: Element = document.body): DomSnapshot {
 
     for (let i = 0; i < el.children.length; i++) {
       walk(el.children[i], nodeId);
+    }
+
+    // Check for attached open Shadow DOM root
+    if ((el as HTMLElement).shadowRoot) {
+      const shadowNodes = extractShadowSubtree((el as HTMLElement).shadowRoot!, nodeId);
+      for (const sn of shadowNodes) {
+        nodes.push(sn);
+      }
     }
   }
 
