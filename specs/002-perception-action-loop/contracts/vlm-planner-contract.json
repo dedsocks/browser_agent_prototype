@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VLMPlannerInterfaceContract",
+  "description": "JSON Schema defining communication contract between Agent Controller and VLM Reasoning Planner adhering to Constitution v1.5.0",
+  "definitions": {
+    "PlannerRequest": {
+      "type": "object",
+      "required": ["schema_version", "session_id", "cycle_id", "goal", "sanitized_payload"],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "enum": ["1.5.0"]
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "cycle_id": {
+          "type": "string"
+        },
+        "goal": {
+          "type": "string"
+        },
+        "step_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "token_manifest": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sanitized_payload": {
+          "type": "object",
+          "required": ["schema_version", "cycle_id", "token_manifest", "sanitized_dom_tree"]
+        }
+      }
+    },
+    "PlannerResponse": {
+      "type": "object",
+      "required": ["cycle_id", "thought", "is_terminal"],
+      "properties": {
+        "cycle_id": {
+          "type": "string"
+        },
+        "thought": {
+          "type": "string",
+          "description": "Chain-of-thought reasoning from the planner"
+        },
+        "is_terminal": {
+          "type": "boolean",
+          "description": "True if the user goal has been fulfilled or cannot proceed"
+        },
+        "result_summary": {
+          "type": "string"
+        },
+        "action": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "id": { "type": "string" },
+            "type": {
+              "type": "string",
+              "enum": ["click", "type", "scroll", "navigate"]
+            },
+            "target": {
+              "type": "object",
+              "properties": {
+                "nodeId": { "type": "string" },
+                "cssSelector": { "type": "string" },
+                "xpath": { "type": "string" },
+                "expectedBounds": {
+                  "type": "object",
+                  "properties": {
+                    "x": { "type": "number" },
+                    "y": { "type": "number" },
+                    "width": { "type": "number" },
+                    "height": { "type": "number" }
+                  }
+                }
+              }
+            },
+            "value": { "type": "string" },
+            "scrollOffset": {
+              "type": "object",
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
