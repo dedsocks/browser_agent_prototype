@@ -6,7 +6,7 @@
 
 import { extractDomSnapshot } from "./dom-extractor.js";
 import { auditOverlayManager } from "./audit-overlay.js";
-import { handleDomSnapshotRequest } from "../background/index.js";
+import { handleDomSnapshotRequest } from "../background/snapshot-processor.js";
 import {
   ProcessDomSnapshotRequest,
   DomSanitizationSuccessResponse,

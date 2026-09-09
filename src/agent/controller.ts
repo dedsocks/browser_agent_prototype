@@ -20,7 +20,7 @@ import { SCHEMA_VERSION } from "../common/constants.js";
 import { TaskSessionManager } from "./task-session.js";
 import { ActionValidator } from "./action-validator.js";
 import { IPlannerClient, PlannerRequest } from "./planner-client.js";
-import { handleDomSnapshotRequest } from "../background/index.js";
+import { handleDomSnapshotRequest } from "../background/snapshot-processor.js";
 import { snapshotToTree } from "../content/dom-extractor.js";
 
 export interface ControllerOptions {
