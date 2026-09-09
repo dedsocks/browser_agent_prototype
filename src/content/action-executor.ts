@@ -135,24 +135,47 @@ export function triggerInterventionUi(context: HumanInterventionContext): void {
   banner.id = "agent-intervention-banner";
   banner.setAttribute(
     "style",
-    "position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2147483647; " +
-      "background: #1A202C; color: #ED8936; border: 2px solid #DD6B20; border-radius: 8px; " +
-      "padding: 12px 20px; font-family: sans-serif; font-size: 14px; font-weight: bold; " +
-      "box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 12px;"
+    "position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483647; " +
+      "background: #181f2f; color: #f8fafc; border: 2px solid #ea580c; border-radius: 10px; " +
+      "padding: 12px 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 500; " +
+      "box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 14px;"
   );
 
   banner.innerHTML = `
-    <span>⚠️ <strong>Human Intervention Required</strong>: ${context.promptMessage}</span>
-    <span style="color: #A0AEC0; font-size: 12px;">(Automated perception paused. Complete input and click Resume)</span>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 18px;">🔒</span>
+      <div>
+        <div style="font-weight: 700; color: #fb923c;">Human Intervention Required</div>
+        <div style="font-size: 11px; color: #94a3b8;">${context.promptMessage}</div>
+      </div>
+    </div>
+    <button id="__btn_resume_agent_task" style="background: #ea580c; color: white; border: none; border-radius: 6px; padding: 7px 14px; font-weight: 600; font-size: 12px; cursor: pointer; transition: background 0.2s;">
+      Resume Task ➔
+    </button>
   `;
 
   document.body.appendChild(banner);
 
+  const resumeBtn = banner.querySelector("#__btn_resume_agent_task");
+  if (resumeBtn) {
+    resumeBtn.addEventListener("click", () => {
+      clearInterventionUi();
+      if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: "RESUME_TASK",
+          currentUrl: window.location.href,
+          confirmedDivergence: true
+        });
+      }
+    });
+  }
+
   // If target field is known, highlight it
   if (context.targetFieldId) {
-    const el = document.getElementById(context.targetFieldId);
+    const el = document.getElementById(context.targetFieldId) || (document.querySelector(`[name="${context.targetFieldId}"]`) as HTMLElement | null);
     if (el) {
-      el.style.outline = "3px solid #DD6B20";
+      el.style.outline = "3px solid #ea580c";
+      el.setAttribute("data-agent-intervention-highlight", "true");
       el.focus();
     }
   }
@@ -166,4 +189,9 @@ export function clearInterventionUi(): void {
   if (banner) {
     banner.remove();
   }
+  const highlighted = document.querySelectorAll("[data-agent-intervention-highlight]");
+  highlighted.forEach(el => {
+    (el as HTMLElement).style.outline = "";
+    el.removeAttribute("data-agent-intervention-highlight");
+  });
 }

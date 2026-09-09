@@ -6,7 +6,7 @@
  */
 
 import { AgentController } from "../agent/controller.js";
-import { MockPlannerClient } from "../agent/planner-client.js";
+import { MockPlannerClient, AutonomousPlannerClient } from "../agent/planner-client.js";
 import {
   handleDomSnapshotRequest,
   setIncrementalCache,
@@ -87,11 +87,10 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 
       if (message?.type === "START_TASK") {
         if (!activeController) {
-          initControllerWithPlanner(new MockPlannerClient([]));
+          initControllerWithPlanner(new AutonomousPlannerClient());
         }
         const session = activeController!.startTask(message.goal, message.url || "");
-        // Immediately run first perception-action cycle to sanitize and transmit
-        activeController!.runNextCycle().then((outcome) => {
+        activeController!.runAutonomousLoop().then((outcome) => {
           sendResponse({ success: true, session, outcome });
         }).catch((err) => {
           sendResponse({ success: false, error: err?.message, session });
@@ -129,6 +128,14 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 
       if (message?.type === "RESUME_TASK") {
         const res = activeController?.resumeTask(message.currentUrl, message.confirmedDivergence);
+        if (res?.success) {
+          activeController?.runAutonomousLoop().then(loopRes => {
+            sendResponse({ ...res, loopRes });
+          }).catch(err => {
+            sendResponse({ ...res, error: err?.message });
+          });
+          return true;
+        }
         sendResponse(res || { success: false });
         return false;
       }

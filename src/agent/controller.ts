@@ -291,4 +291,26 @@ export class AgentController {
       return { success: false, error: err?.message };
     }
   }
+
+  /**
+   * Continuously executes cycles until task is completed, requires human intervention, or encounters error.
+   */
+  public async runAutonomousLoop(
+    maxCycles = 15
+  ): Promise<{ success: boolean; requiresIntervention?: boolean; isTerminal?: boolean; error?: string }> {
+    let cycles = 0;
+    while (cycles < maxCycles) {
+      cycles++;
+      const outcome = await this.runNextCycle();
+      if (!outcome.success) {
+        return outcome;
+      }
+      if (outcome.isTerminal) {
+        return outcome;
+      }
+      // Brief pause between actions
+      await new Promise(r => setTimeout(r, 400));
+    }
+    return { success: true, isTerminal: true };
+  }
 }
