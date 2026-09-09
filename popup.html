@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Boundary Control</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --border: rgba(255, 255, 255, 0.1);
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --financial: #e53e3e;
+      --identity: #ed8936;
+      --credential: #ecc94b;
+      --contact: #3182ce;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      font-size: 13px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-title {
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .version-tag {
+      font-size: 10px;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .status-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-info {
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .legend-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .footer {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-title">
+      🛡️ Privacy Boundary
+    </div>
+    <span class="version-tag">v1.5.0</span>
+  </div>
+
+  <div class="status-card">
+    <div class="status-dot"></div>
+    <div id="status-text" class="status-info">Privacy Boundary Armed (Fail-Closed)</div>
+  </div>
+
+  <div class="btn-group">
+    <button id="btn-scan" class="btn-primary">
+      🔍 Scan & Protect Active Tab
+    </button>
+    <button id="btn-demo" class="btn-secondary">
+      🧪 Open Test / Demo Form
+    </button>
+    <button id="btn-clear" class="btn-secondary">
+      🧹 Clear Audit Overlays
+    </button>
+  </div>
+
+  <div class="legend-title">Protected Categories</div>
+  <div class="legend-grid">
+    <div class="legend-item">
+      <span class="legend-color" style="background: var(--financial);"></span>
+      <span>Financial Cards</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background: var(--identity);"></span>
+      <span>National IDs</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background: var(--credential);"></span>
+      <span>Credentials</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background: var(--contact);"></span>
+      <span>Contact Info</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    0% Plaintext Leakage Guarantee • Non-Destructive DOM
+  </div>
+
+  <script src="dist/popup.bundle.js"></script>
+</body>
+</html>

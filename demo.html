@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Agent Privacy Test Sandbox</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 640px;
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #10b981;
+    }
+
+    p.subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .info-banner {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid #38bdf8;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .toolbar-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .btn-action {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-action:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid #475569;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .form-group {
+      margin-bottom: 22px;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #e2e8f0;
+    }
+
+    input[type="text"], input[type="password"], input[type="email"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      color: #f8fafc;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-submit {
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+      transition: background 0.15s;
+      width: 100%;
+    }
+
+    .btn-submit:hover {
+      background: #0ea5e9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-row">
+      <h1>🛡️ Privacy Boundary Test Sandbox</h1>
+      <span class="status-badge">Protected</span>
+    </div>
+    <p class="subtitle">Client-side PII redaction pipeline with non-destructive visual audit overlay.</p>
+
+    <div class="info-banner">
+      <strong>Active Non-Destructive Protection:</strong> Notice the colored bounding box overlays appearing directly over sensitive inputs. The underlying form inputs below remain 100% interactive and unmutated in your live DOM.
+    </div>
+
+    <div class="toolbar-row">
+      <button type="button" class="btn-action" onclick="window.__privacyBoundary?.trigger('manual-' + Date.now());">
+        🔍 Re-Scan Page
+      </button>
+      <button type="button" class="btn-action btn-secondary" onclick="window.__privacyBoundary?.clear();">
+        🧹 Clear Overlays
+      </button>
+    </div>
+
+    <form id="sample-checkout" onsubmit="event.preventDefault(); alert('Form submitted! Live DOM values were unmutated.');">
+      <div class="form-group">
+        <label for="cc_number">Payment Card Number (Luhn Validated):</label>
+        <input type="text" id="cc_number" name="cc_number" value="4532 0151 1283 0366" autocomplete="cc-number" />
+      </div>
+
+      <div class="form-group">
+        <label for="ssn">US Social Security Number (SSN):</label>
+        <input type="text" id="ssn" name="ssn" value="123-45-6789" />
+      </div>
+
+      <div class="form-group">
+        <label for="pan">Indian Permanent Account Number (PAN):</label>
+        <input type="text" id="pan" name="pan" value="ABCDE1234F" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Contact Email Address:</label>
+        <input type="email" id="email" name="email" value="alex.morris@enterprise.example.com" />
+      </div>
+
+      <div class="form-group">
+        <label for="user_pass">Account Password:</label>
+        <input type="password" id="user_pass" name="user_pass" value="SuperSecureSecretPassword123!" autocomplete="current-password" />
+      </div>
+
+      <button type="submit" class="btn-submit">Submit Order (Live DOM Intact)</button>
+    </form>
+  </div>
+
+  <!-- Content script bundle: executes either standalone or with extension -->
+  <script src="dist/content.bundle.js"></script>
+</body>
+</html>

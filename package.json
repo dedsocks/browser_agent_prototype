@@ -1,0 +1,19 @@
+{
+  "name": "browser-agent-prototype",
+  "version": "1.5.0",
+  "description": "Browser agent prototype with client-side PII redaction pipeline",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && esbuild src/background/index.ts --bundle --target=es2022 --outfile=dist/background.bundle.js && esbuild src/content/index.ts --bundle --target=es2022 --outfile=dist/content.bundle.js && esbuild src/popup/index.ts --bundle --target=es2022 --outfile=dist/popup.bundle.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@types/node": "^20.11.0",
+    "jsdom": "^24.0.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
+  }
+}

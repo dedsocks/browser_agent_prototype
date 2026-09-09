@@ -10,9 +10,9 @@
 
 **Purpose**: Project initialization, Manifest V3 configuration, and testing framework setup
 
-- [ ] T001 Initialize TypeScript project configuration and Manifest V3 extension structure in package.json and tsconfig.json
-- [ ] T002 [P] Define WebExtension manifest configuration supporting Chromium chrome.offscreen and Firefox MV3 in manifest.json
-- [ ] T003 [P] Configure Vitest test runner and JSDOM test environment in vitest.config.ts
+- [X] T001 Initialize TypeScript project configuration and Manifest V3 extension structure in package.json and tsconfig.json
+- [X] T002 [P] Define WebExtension manifest configuration supporting Chromium chrome.offscreen and Firefox MV3 in manifest.json
+- [X] T003 [P] Configure Vitest test runner and JSDOM test environment in vitest.config.ts
 
 ---
 
@@ -22,11 +22,11 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete
 
-- [ ] T004 [P] Define shared types, interfaces, and state models in src/common/types.ts per data-model.md
-- [ ] T005 [P] Define semantic token constants and schema version header ("1.5.0") in src/common/constants.ts
-- [ ] T006 Implement adversarial input normalizer (NFKC normalization, homoglyph mapping, zero-width stripping) in src/privacy/normalizer.ts
-- [ ] T007 [P] Implement Luhn and Verhoeff checksum validation algorithms in src/privacy/checksums.ts
-- [ ] T008 Implement unit tests for normalizer and checksums in tests/unit/normalizer.test.ts and tests/unit/checksums.test.ts
+- [X] T004 [P] Define shared types, interfaces, and state models in src/common/types.ts per data-model.md
+- [X] T005 [P] Define semantic token constants and schema version header ("1.5.0") in src/common/constants.ts
+- [X] T006 Implement adversarial input normalizer (NFKC normalization, homoglyph mapping, zero-width stripping) in src/privacy/normalizer.ts
+- [X] T007 [P] Implement Luhn and Verhoeff checksum validation algorithms in src/privacy/checksums.ts
+- [X] T008 Implement unit tests for normalizer and checksums in tests/unit/normalizer.test.ts and tests/unit/checksums.test.ts
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
@@ -41,16 +41,16 @@
 ### Tests for User Story 1 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [P] [US1] Create unit tests for regex engine and PII detection in tests/unit/regex-engine.test.ts
-- [ ] T010 [P] [US1] Create contract test for serialized payload envelope against contracts/payload-schema.json in tests/contract/payload-serialization.test.ts
-- [ ] T011 [P] [US1] Create live DOM integrity tests asserting unmutated input values and elements in tests/unit/dom-integrity.test.ts
+- [X] T009 [P] [US1] Create unit tests for regex engine and PII detection in tests/unit/regex-engine.test.ts
+- [X] T010 [P] [US1] Create contract test for serialized payload envelope against contracts/payload-schema.json in tests/contract/payload-serialization.test.ts
+- [X] T011 [P] [US1] Create live DOM integrity tests asserting unmutated input values and elements in tests/unit/dom-integrity.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement high-precision regex detection engine for cards, SSNs, PANs, emails, phones, and credentials in src/privacy/regex-engine.ts
-- [ ] T013 [US1] Implement redaction manifest generator in src/privacy/manifest-builder.ts
-- [ ] T014 [US1] Implement structural semantic tokenizer and serialization transformer in src/privacy/tokenizer.ts
-- [ ] T015 [US1] Implement DOM extractor capturing non-sensitive DOM hierarchy and geometry in src/content/dom-extractor.ts
+- [X] T012 [US1] Implement high-precision regex detection engine for cards, SSNs, PANs, emails, phones, and credentials in src/privacy/regex-engine.ts
+- [X] T013 [US1] Implement redaction manifest generator in src/privacy/manifest-builder.ts
+- [X] T014 [US1] Implement structural semantic tokenizer and serialization transformer in src/privacy/tokenizer.ts
+- [X] T015 [US1] Implement DOM extractor capturing non-sensitive DOM hierarchy and geometry in src/content/dom-extractor.ts
 
 **Checkpoint**: At this point, User Story 1 (MVP) is fully functional and testable independently
 
@@ -65,13 +65,13 @@
 ### Tests for User Story 2 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [P] [US2] Create integration test for fail-closed protocol and fault injection in tests/integration/fail-closed.test.ts
+- [X] T016 [P] [US2] Create integration test for fail-closed protocol and fault injection in tests/integration/fail-closed.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Implement pre-transmission zero-leakage scanner and manifest verifier in src/privacy/verifier.ts
-- [ ] T018 [US2] Implement network transmission gatekeeper intercepting outbound requests in src/background/network-interceptor.ts
-- [ ] T019 [US2] Implement background message router and fail-closed session abort handler in src/background/index.ts
+- [X] T017 [US2] Implement pre-transmission zero-leakage scanner and manifest verifier in src/privacy/verifier.ts
+- [X] T018 [US2] Implement network transmission gatekeeper intercepting outbound requests in src/background/network-interceptor.ts
+- [X] T019 [US2] Implement background message router and fail-closed session abort handler in src/background/index.ts
 
 **Checkpoint**: User Stories 1 AND 2 are complete. Outbound network transmission is strictly guarded by fail-closed verification.
 
@@ -86,13 +86,13 @@
 ### Tests for User Story 3 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T020 [P] [US3] Create unit test for adjacent label stripping in tests/unit/label-stripper.test.ts
+- [X] T020 [P] [US3] Create unit test for adjacent label stripping in tests/unit/label-stripper.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Implement adjacent label identifier and scrubber (spatial proximity + ARIA associations) in src/privacy/label-stripper.ts
-- [ ] T022 [US3] Integrate label scrubber into structural tokenizer in src/privacy/tokenizer.ts
-- [ ] T023 [US3] Implement offscreen worker visual mask processor for canvas/opaque elements in src/background/offscreen-manager.ts
+- [X] T021 [US3] Implement adjacent label identifier and scrubber (spatial proximity + ARIA associations) in src/privacy/label-stripper.ts
+- [X] T022 [US3] Integrate label scrubber into structural tokenizer in src/privacy/tokenizer.ts
+- [X] T023 [US3] Implement offscreen worker visual mask processor for canvas/opaque elements in src/background/offscreen-manager.ts
 
 **Checkpoint**: VLM Contextual Blindness and visual redaction are active and testable independently.
 
@@ -107,13 +107,13 @@
 ### Tests for User Story 4 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US4] Create unit and performance benchmark tests for overlay rendering in tests/unit/audit-overlay.test.ts
+- [X] T024 [P] [US4] Create unit and performance benchmark tests for overlay rendering in tests/unit/audit-overlay.test.ts
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Implement non-destructive audit overlay manager in src/content/audit-overlay.ts
-- [ ] T026 [US4] Implement throttled/coalesced requestAnimationFrame render loop in src/content/audit-overlay.ts
-- [ ] T027 [US4] Wire content script message listener for overlay coordinates in src/content/index.ts
+- [X] T025 [US4] Implement non-destructive audit overlay manager in src/content/audit-overlay.ts
+- [X] T026 [US4] Implement throttled/coalesced requestAnimationFrame render loop in src/content/audit-overlay.ts
+- [X] T027 [US4] Wire content script message listener for overlay coordinates in src/content/index.ts
 
 **Checkpoint**: All 4 user stories are independently functional and verified against requirements.
 
@@ -123,9 +123,9 @@
 
 **Purpose**: End-to-end integration validation, demographic parity benchmarks, and documentation alignment
 
-- [ ] T028 [P] Create end-to-end integration test covering perception-action cycle per quickstart.md in tests/integration/full-pipeline.test.ts
-- [ ] T029 Benchmark False Negative Rate (FNR) parity and precision/recall against synthetic test dataset in tests/unit/detection/benchmark.test.ts
-- [ ] T030 [P] Verify documentation and schema conformance across contracts/ and specs/001-client-pii-redaction/
+- [X] T028 [P] Create end-to-end integration test covering perception-action cycle per quickstart.md in tests/integration/full-pipeline.test.ts
+- [X] T029 Benchmark False Negative Rate (FNR) parity and precision/recall against synthetic test dataset in tests/unit/detection/benchmark.test.ts
+- [X] T030 [P] Verify documentation and schema conformance across contracts/ and specs/001-client-pii-redaction/
 
 ---
 
