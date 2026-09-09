@@ -7,7 +7,7 @@ import { MockPlannerClient } from "../../src/agent/planner-client.js";
 import { extractDomSnapshot } from "../../src/content/dom-extractor.js";
 import { resolveTargetElement } from "../../src/content/target-resolver.js";
 import { executeDomAction } from "../../src/content/action-executor.js";
-import { TaskState } from "../../src/common/types.js";
+import { TaskState, TargetSelector, AgentAction, ValidationResult } from "../../src/common/types.js";
 
 describe("Perception-Reasoning-Action Loop Integration", () => {
   beforeEach(() => {
@@ -58,8 +58,8 @@ describe("Perception-Reasoning-Action Loop Integration", () => {
       planner,
       // Provide content script handlers in same JS context for tests
       snapshotProvider: async () => extractDomSnapshot(),
-      targetResolver: async (target) => resolveTargetElement(target),
-      actionExecutor: async (action, valRes) => executeDomAction(action, valRes)
+      targetResolver: async (target?: TargetSelector) => resolveTargetElement(target),
+      actionExecutor: async (action: AgentAction, valRes: ValidationResult) => executeDomAction(action, valRes)
     });
 
     controller.startTask("Find Paris flights", "https://flights.example.com");

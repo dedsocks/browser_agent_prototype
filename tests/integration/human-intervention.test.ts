@@ -7,7 +7,7 @@ import { MockPlannerClient } from "../../src/agent/planner-client.js";
 import { extractDomSnapshot } from "../../src/content/dom-extractor.js";
 import { resolveTargetElement } from "../../src/content/target-resolver.js";
 import { executeDomAction, triggerInterventionUi, clearInterventionUi } from "../../src/content/action-executor.js";
-import { TaskState } from "../../src/common/types.js";
+import { TaskState, TargetSelector, AgentAction, ValidationResult, HumanInterventionContext } from "../../src/common/types.js";
 
 describe("Human-in-the-Loop Secret Handling Integration (Constitution Article XIII)", () => {
   beforeEach(() => {
@@ -49,9 +49,9 @@ describe("Human-in-the-Loop Secret Handling Integration (Constitution Article XI
     const controller = new AgentController({
       planner,
       snapshotProvider: async () => extractDomSnapshot(),
-      targetResolver: async (target) => resolveTargetElement(target),
-      actionExecutor: async (action, valRes) => executeDomAction(action, valRes),
-      interventionUiTrigger: (ctx) => triggerInterventionUi(ctx),
+      targetResolver: async (target?: TargetSelector) => resolveTargetElement(target),
+      actionExecutor: async (action: AgentAction, valRes: ValidationResult) => executeDomAction(action, valRes),
+      interventionUiTrigger: (ctx: HumanInterventionContext) => triggerInterventionUi(ctx),
       interventionUiClearer: () => clearInterventionUi()
     });
 

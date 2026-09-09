@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { extractShadowSubtree, resolveElementInShadowRoots } from "../../../src/content/shadow-dom-extractor.js";
 import { extractDomSnapshot } from "../../../src/content/dom-extractor.js";
+import { DomSnapshotNode } from "../../../src/common/types.js";
 
 describe("Shadow DOM Subtree Extraction & Target Resolution", () => {
   beforeEach(() => {
@@ -29,7 +30,7 @@ describe("Shadow DOM Subtree Extraction & Target Resolution", () => {
     const nodes = extractShadowSubtree(host.shadowRoot!, "host-element");
 
     expect(nodes.length).toBeGreaterThan(0);
-    const cardNode = nodes.find(n => n.node_id === "shadow-card");
+    const cardNode = nodes.find((n: DomSnapshotNode) => n.node_id === "shadow-card");
     expect(cardNode).toBeDefined();
     expect(cardNode?.value).toBe("4532 1111 2222 3333");
     expect(cardNode?.shadow_host_id).toBe("host-element");
@@ -37,7 +38,7 @@ describe("Shadow DOM Subtree Extraction & Target Resolution", () => {
 
   it("extractDomSnapshot includes shadow DOM nodes in global snapshot", () => {
     const snapshot = extractDomSnapshot(document.body);
-    const shadowNode = snapshot.nodes.find(n => n.node_id === "shadow-card");
+    const shadowNode = snapshot.nodes.find((n: DomSnapshotNode) => n.node_id === "shadow-card");
 
     expect(shadowNode).toBeDefined();
     expect(shadowNode?.is_shadow_root).toBe(true);
