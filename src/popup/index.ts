@@ -15,6 +15,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const vaultContainer = document.getElementById("vault-container") as HTMLElement;
   const vaultCount = document.getElementById("vault-count") as HTMLElement;
   const clearVaultBtn = document.getElementById("btn-clear-vault") as HTMLButtonElement;
+  const btnSettingsToggle = document.getElementById("btn-settings-toggle") as HTMLButtonElement;
+  const settingsPanel = document.getElementById("settings-panel") as HTMLElement;
+  const endpointInput = document.getElementById("endpoint-input") as HTMLInputElement;
+  const apiKeyInput = document.getElementById("api-key-input") as HTMLInputElement;
+  const btnSaveSettings = document.getElementById("btn-save-settings") as HTMLButtonElement;
+  const settingsStatus = document.getElementById("settings-status") as HTMLElement;
+
+  // Load Cloud Reasoning Settings
+  if (typeof chrome !== "undefined" && chrome.storage?.local) {
+    chrome.storage.local.get(["planner_endpoint", "planner_api_key"], (cfg: any) => {
+      if (endpointInput) endpointInput.value = cfg?.planner_endpoint || "http://127.0.0.1:8000/v1/plan";
+      if (apiKeyInput && cfg?.planner_api_key) apiKeyInput.value = cfg.planner_api_key;
+    });
+  }
+
+  if (btnSettingsToggle && settingsPanel) {
+    btnSettingsToggle.addEventListener("click", () => {
+      settingsPanel.classList.toggle("open");
+    });
+  }
+
+  if (btnSaveSettings) {
+    btnSaveSettings.addEventListener("click", () => {
+      const endpoint = (endpointInput?.value || "").trim() || "http://127.0.0.1:8000/v1/plan";
+      const apiKey = (apiKeyInput?.value || "").trim();
+
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        chrome.storage.local.set({ planner_endpoint: endpoint, planner_api_key: apiKey }, () => {
+          if (settingsStatus) {
+            settingsStatus.textContent = "Saved ✓";
+            setTimeout(() => {
+              if (settingsStatus) settingsStatus.textContent = "";
+            }, 2000);
+          }
+        });
+      }
+    });
+  }
 
   function setStatus(text: string, state: "ready" | "busy" | "listening" = "ready") {
     if (statusText) statusText.textContent = text;

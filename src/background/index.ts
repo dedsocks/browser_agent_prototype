@@ -6,7 +6,7 @@
  */
 
 import { AgentController } from "../agent/controller.js";
-import { MockPlannerClient, AutonomousPlannerClient } from "../agent/planner-client.js";
+import { RemoteVlmPlannerClient, MockPlannerClient } from "../agent/planner-client.js";
 import {
   handleDomSnapshotRequest,
   setIncrementalCache,
@@ -86,16 +86,31 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       }
 
       if (message?.type === "START_TASK") {
-        if (!activeController) {
-          initControllerWithPlanner(new AutonomousPlannerClient());
+        if (typeof chrome !== "undefined" && chrome.storage?.local) {
+          chrome.storage.local.get(["planner_endpoint", "planner_api_key"], (cfg: any) => {
+            const endpointUrl = cfg?.planner_endpoint || "http://127.0.0.1:8000/v1/plan";
+            const apiKey = cfg?.planner_api_key || undefined;
+
+            initControllerWithPlanner(new RemoteVlmPlannerClient({ endpointUrl, apiKey }));
+
+            const session = activeController!.startTask(message.goal, message.url || "");
+            activeController!.runAutonomousLoop().then((outcome) => {
+              sendResponse({ success: true, session, outcome });
+            }).catch((err) => {
+              sendResponse({ success: false, error: err?.message, session });
+            });
+          });
+          return true;
+        } else {
+          initControllerWithPlanner(new RemoteVlmPlannerClient({ endpointUrl: "http://127.0.0.1:8000/v1/plan" }));
+          const session = activeController!.startTask(message.goal, message.url || "");
+          activeController!.runAutonomousLoop().then((outcome) => {
+            sendResponse({ success: true, session, outcome });
+          }).catch((err) => {
+            sendResponse({ success: false, error: err?.message, session });
+          });
+          return true;
         }
-        const session = activeController!.startTask(message.goal, message.url || "");
-        activeController!.runAutonomousLoop().then((outcome) => {
-          sendResponse({ success: true, session, outcome });
-        }).catch((err) => {
-          sendResponse({ success: false, error: err?.message, session });
-        });
-        return true;
       }
 
       if (message?.type === "GET_VAULT_TRANSMISSIONS") {
