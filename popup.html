@@ -189,7 +189,12 @@
     <label for="task-input" style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;">
       Agent Task Goal
     </label>
-    <input type="text" id="task-input" placeholder="e.g. Find cheap flights or fill form" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-size: 12px; margin-bottom: 8px;" />
+    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+      <input type="text" id="task-input" placeholder="e.g. Find cheap flights or fill form" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-size: 12px;" />
+      <button id="btn-voice-input" class="btn-secondary" title="Voice Input (Local Transcription - 0% Audio Leakage)" style="padding: 8px 10px;">
+        🎤
+      </button>
+    </div>
     
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
       <button id="btn-start-task" class="btn-primary" style="background: #10B981;">

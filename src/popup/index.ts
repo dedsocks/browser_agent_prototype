@@ -1,9 +1,8 @@
-/**
- * Extension Action Popup Script
- * Coordinates Privacy Boundary and Agent Controller Lifecycle.
- */
+import { VoiceManager } from "../voice/voice-manager.js";
 
 declare const chrome: any;
+
+const voiceManager = new VoiceManager();
 
 document.addEventListener("DOMContentLoaded", () => {
   const scanBtn = document.getElementById("btn-scan") as HTMLButtonElement;
@@ -12,11 +11,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusEl = document.getElementById("status-text") as HTMLElement;
 
   const taskInput = document.getElementById("task-input") as HTMLInputElement;
+  const voiceBtn = document.getElementById("btn-voice-input") as HTMLButtonElement;
   const startTaskBtn = document.getElementById("btn-start-task") as HTMLButtonElement;
   const pauseTaskBtn = document.getElementById("btn-pause-task") as HTMLButtonElement;
   const resumeTaskBtn = document.getElementById("btn-resume-task") as HTMLButtonElement;
   const abortTaskBtn = document.getElementById("btn-abort-task") as HTMLButtonElement;
   const runStepBtn = document.getElementById("btn-run-step") as HTMLButtonElement;
+
+  if (voiceBtn) {
+    voiceBtn.addEventListener("click", async () => {
+      statusEl.textContent = "Listening for task goal (Local Speech-to-Text)...";
+      voiceBtn.style.background = "#E53E3E";
+      voiceBtn.textContent = "🔴";
+
+      const res = await voiceManager.startListening();
+      voiceBtn.style.background = "";
+      voiceBtn.textContent = "🎤";
+
+      if (res.success && res.transcript) {
+        if (taskInput) {
+          taskInput.value = res.transcript;
+        }
+        statusEl.textContent = "Spoken goal transcribed locally!";
+      } else if (res.fallbackToText) {
+        statusEl.textContent = `Voice unavailable (${res.error || "error"}). Please type task.`;
+        if (taskInput) {
+          taskInput.focus();
+        }
+      }
+    });
+  }
 
   // Poll current agent status on popup open
   if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {

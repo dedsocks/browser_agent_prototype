@@ -284,3 +284,36 @@ export interface ResolveTargetElementResponse {
   tagName?: string;
   error?: string;
 }
+
+// Voice Input Privacy (Constitution Article I & XII)
+export enum VoiceState {
+  INACTIVE = "INACTIVE",
+  LISTENING = "LISTENING",
+  PROCESSING = "PROCESSING",
+  SUCCESS = "SUCCESS",
+  ERROR = "ERROR",
+  UNAVAILABLE = "UNAVAILABLE"
+}
+
+export interface VoiceSession {
+  state: VoiceState;
+  transcript: string;
+  isFinal: boolean;
+  audioBuffersCleared: boolean;
+  errorMessage?: string;
+}
+
+// Incremental State Processing & Fingerprinting (Constitution Article XI)
+export interface RegionFingerprint {
+  nodeId: string;
+  fingerprintHash: string;
+  subtreeHash: string;
+  timestamp: number;
+}
+
+export interface CachedRegionRedaction {
+  fingerprintHash: string;
+  entities: DetectedEntity[];
+  sanitizedNode: SanitizedDomNode;
+  verifiedAt: number;
+}

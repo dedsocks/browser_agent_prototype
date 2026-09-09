@@ -20,8 +20,20 @@ import { detectPiiInText } from "../privacy/regex-engine.js";
 import { buildRedactionManifest } from "../privacy/manifest-builder.js";
 import { buildSanitizedPayload } from "../privacy/tokenizer.js";
 import { verifyPreTransmission } from "../privacy/verifier.js";
+import { computeNodeFingerprint } from "../cache/region-fingerprint.js";
+import { IncrementalStateCache } from "../cache/state-cache.js";
 
 declare const chrome: any;
+
+let globalIncrementalCache: IncrementalStateCache | null = new IncrementalStateCache();
+
+export function setIncrementalCache(cache: IncrementalStateCache | null): void {
+  globalIncrementalCache = cache;
+}
+
+export function getIncrementalCache(): IncrementalStateCache | null {
+  return globalIncrementalCache;
+}
 
 /**
  * Core processing routine for DOM snapshots received from content scripts.
@@ -38,6 +50,19 @@ export async function handleDomSnapshotRequest(
 
     // 1. Identify sensitive elements and text nodes in snapshot
     for (const node of dom_snapshot.nodes) {
+      const fingerprint = computeNodeFingerprint(node);
+
+      if (globalIncrementalCache && globalIncrementalCache.has(fingerprint)) {
+        const cached = globalIncrementalCache.get(fingerprint);
+        if (cached && cached.entities) {
+          for (const ent of cached.entities) {
+            entities.push(ent);
+          }
+        }
+        continue;
+      }
+
+      const nodeEntities: DetectedEntity[] = [];
       const textToScan = node.value || node.text || "";
       const matches = detectPiiInText(textToScan);
 
@@ -108,7 +133,7 @@ export async function handleDomSnapshotRequest(
           }
         }
 
-        entities.push({
+        const entity: DetectedEntity = {
           id: `ent_${node.node_id}_${entities.length + 1}`,
           category: primaryCategory,
           token,
@@ -117,6 +142,22 @@ export async function handleDomSnapshotRequest(
           associatedLabelNodeIds: associatedLabels,
           confidence: primaryConfidence,
           verified: false
+        };
+
+        entities.push(entity);
+        nodeEntities.push(entity);
+      }
+
+      if (globalIncrementalCache) {
+        globalIncrementalCache.set(fingerprint, {
+          fingerprintHash: fingerprint,
+          entities: nodeEntities,
+          sanitizedNode: {
+            node_id: node.node_id,
+            tag: node.tag,
+            bounds: node.bounds
+          },
+          verifiedAt: Date.now()
         });
       }
     }

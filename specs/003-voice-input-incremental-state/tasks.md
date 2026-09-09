@@ -10,7 +10,7 @@
 
 **Purpose**: Shared types and interfaces for voice sessions and incremental caching
 
-- [ ] T001 [P] Define VoiceState, VoiceSession, RegionFingerprint, and CachedRegionRedaction in src/common/types.ts
+- [X] T001 [P] Define VoiceState, VoiceSession, RegionFingerprint, and CachedRegionRedaction in src/common/types.ts
 
 ---
 
@@ -20,10 +20,10 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete
 
-- [ ] T002 Implement deterministic region fingerprinting function in src/cache/region-fingerprint.ts
-- [ ] T003 [P] Implement unit tests for region fingerprinting in tests/unit/cache/region-fingerprint.test.ts
-- [ ] T004 Implement incremental state cache in src/cache/state-cache.ts
-- [ ] T005 [P] Implement unit tests for state cache in tests/unit/cache/state-cache.test.ts
+- [X] T002 Implement deterministic region fingerprinting function in src/cache/region-fingerprint.ts
+- [X] T003 [P] Implement unit tests for region fingerprinting in tests/unit/cache/region-fingerprint.test.ts
+- [X] T004 Implement incremental state cache in src/cache/state-cache.ts
+- [X] T005 [P] Implement unit tests for state cache in tests/unit/cache/state-cache.test.ts
 
 **Checkpoint**: Foundational fingerprinting and cache ready
 
@@ -36,15 +36,15 @@
 ### Tests for User Story 1 & 2 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Create unit tests for speech transcriber in tests/unit/voice/speech-transcriber.test.ts
-- [ ] T007 [P] [US1] Create unit tests for voice manager in tests/unit/voice/voice-manager.test.ts
-- [ ] T008 [P] [US1] Create integration test verifying zero raw audio transmission in tests/integration/voice-privacy-flow.test.ts
+- [X] T006 [P] [US1] Create unit tests for speech transcriber in tests/unit/voice/speech-transcriber.test.ts
+- [X] T007 [P] [US1] Create unit tests for voice manager in tests/unit/voice/voice-manager.test.ts
+- [X] T008 [P] [US1] Create integration test verifying zero raw audio transmission in tests/integration/voice-privacy-flow.test.ts
 
 ### Implementation for User Story 1 & 2
 
-- [ ] T009 [US1] Implement ISpeechTranscriber with Web Speech API and mock support in src/voice/speech-transcriber.ts
-- [ ] T010 [US1] Implement VoiceManager with buffer clearing and fallback logic in src/voice/voice-manager.ts
-- [ ] T011 [US1] Integrate voice input toggle into popup UI in popup.html and src/popup/index.ts
+- [X] T009 [US1] Implement ISpeechTranscriber with Web Speech API and mock support in src/voice/speech-transcriber.ts
+- [X] T010 [US1] Implement VoiceManager with buffer clearing and fallback logic in src/voice/voice-manager.ts
+- [X] T011 [US1] Integrate voice input toggle into popup UI in popup.html and src/popup/index.ts
 
 **Checkpoint**: Voice input and text fallback functional and verifiable independently.
 
@@ -57,11 +57,11 @@
 ### Tests for User Story 3 ⚠️
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US3] Create integration test for incremental processing cache hits and invalidations in tests/integration/incremental-processing.test.ts
+- [X] T012 [P] [US3] Create integration test for incremental processing cache hits and invalidations in tests/integration/incremental-processing.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Integrate IncrementalStateCache into handleDomSnapshotRequest in src/background/index.ts
+- [X] T013 [US3] Integrate IncrementalStateCache into handleDomSnapshotRequest in src/background/index.ts
 
 **Checkpoint**: Multi-turn tasks skip unchanged subtrees, lowering latency by ≥40%.
 
@@ -69,5 +69,5 @@
 
 ## Phase 5: Polish & Verification
 
-- [ ] T014 Run full Vitest test suite (`npm test`) across all tests
-- [ ] T015 Verify build compilation (`npm run build`)
+- [X] T014 Run full Vitest test suite (`npm test`) across all tests
+- [X] T015 Verify build compilation (`npm run build`)
