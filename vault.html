@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Transmission Vault | Browser Agent</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #141b2d;
+      --card-hover: #1a233a;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --token-bg: rgba(99, 102, 241, 0.15);
+      --token-text: #a5b4fc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--token-text);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .clear-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .clear-btn:hover {
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .vault-description {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .vault-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .vault-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .vault-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-time {
+      font-size: 11px;
+      color: var(--text-subtle);
+    }
+
+    .redact-pill {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 2px 8px;
+      font-weight: 500;
+    }
+
+    .card-url {
+      font-size: 12px;
+      font-family: monospace;
+      color: #93c5fd;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tokens-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .token-chip {
+      background: var(--token-bg);
+      color: var(--token-text);
+      font-size: 11px;
+      font-family: monospace;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .inspect-btn {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .inspect-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .json-preview {
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      display: none;
+    }
+
+    .json-preview.open {
+      display: block;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-subtle);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="title">Server Transmission Vault</div>
+        <div class="subtitle">Complete audit record of sanitized payloads sent over the wire (Schema v1.5.0)</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="vault-count" class="badge">0 Records</span>
+      <button id="btn-clear-vault" class="clear-btn">Clear Vault</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="vault-description">
+      This vault provides complete local transparency into all data leaving your browser. Every entry below represents the exact sanitized structural DOM payload dispatched to the cloud reasoning service. Zero plaintext passwords, financial records, or credentials ever leave your device.
+    </div>
+
+    <div id="vault-container" class="vault-container">
+      <div id="empty-state" class="empty-state">
+        <div>No server transmissions recorded yet.</div>
+        <div style="font-size: 12px; margin-top: 6px;">Run a task with the browser agent to inspect transmitted payloads.</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="dist/vault.bundle.js"></script>
+</body>
+</html>

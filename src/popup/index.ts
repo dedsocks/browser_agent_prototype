@@ -12,9 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusText = document.getElementById("status-text") as HTMLElement;
   const statusDot = document.getElementById("status-dot") as HTMLElement;
   const togglePii = document.getElementById("toggle-pii-boxes") as HTMLInputElement;
-  const vaultContainer = document.getElementById("vault-container") as HTMLElement;
   const vaultCount = document.getElementById("vault-count") as HTMLElement;
-  const clearVaultBtn = document.getElementById("btn-clear-vault") as HTMLButtonElement;
+  const btnOpenVault = document.getElementById("btn-open-vault") as HTMLButtonElement;
   const btnSettingsToggle = document.getElementById("btn-settings-toggle") as HTMLButtonElement;
   const settingsPanel = document.getElementById("settings-panel") as HTMLElement;
   const endpointInput = document.getElementById("endpoint-input") as HTMLInputElement;
@@ -133,11 +132,17 @@ document.addEventListener("DOMContentLoaded", () => {
           (res: any) => {
             if (submitBtn) submitBtn.disabled = false;
             if (res?.success) {
-              setStatus("Completed", "ready");
+              if (res?.outcome?.requiresIntervention) {
+                setStatus("Paused: Enter Password on Page", "busy");
+              } else if (res?.outcome?.isTerminal) {
+                setStatus("Task Completed", "ready");
+              } else {
+                setStatus("Running", "busy");
+              }
             } else {
-              setStatus("Processed", "ready");
+              setStatus(res?.error ? `Error: ${res.error}` : "Failed", "ready");
             }
-            loadVaultTransmissions();
+            updateVaultCount();
           }
         );
       } else {
@@ -198,97 +203,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================================
-  // Option 3: Server Transmission Vault
+  // Option 3: Server Transmission Vault Launcher
   // ==========================================
-  function renderVault(transmissions: any[]) {
-    if (!vaultContainer) return;
-    if (vaultCount) vaultCount.textContent = `${transmissions.length}`;
-
-    if (!transmissions || transmissions.length === 0) {
-      vaultContainer.innerHTML = `
-        <div class="vault-empty">
-          <span>No server transmissions yet.</span>
-          <span style="font-size: 11px;">Run a task to inspect outbound sanitized payloads.</span>
-        </div>
-      `;
-      return;
-    }
-
-    vaultContainer.innerHTML = "";
-
-    transmissions.forEach((item, index) => {
-      const card = document.createElement("div");
-      card.className = "vault-card";
-
-      const tokenChips = (item.tokenManifest || [])
-        .slice(0, 4)
-        .map((t: string) => `<span class="token-chip">${t}</span>`)
-        .join("");
-
-      const moreTokens = (item.tokenManifest?.length || 0) > 4
-        ? `<span class="token-chip">+${item.tokenManifest.length - 4} more</span>`
-        : "";
-
-      const sampleJson = item.sanitizedDomSample || JSON.stringify(item.rawPayload || item, null, 2);
-
-      card.innerHTML = `
-        <div class="vault-card-header">
-          <span class="vault-time">${item.timestamp || "Just now"}</span>
-          <span class="vault-tag">${item.entitiesRedactedCount || item.entities?.length || 0} Redacted</span>
-        </div>
-        <div class="vault-url" title="${item.url || ""}">${item.url || "Active Page"}</div>
-        <div class="tokens-list">
-          ${tokenChips || '<span class="token-chip" style="background: rgba(255,255,255,0.05); color: #94a3b8;">No sensitive tokens in payload</span>'}
-          ${moreTokens}
-        </div>
-        <button class="inspect-btn" id="inspect-btn-${index}">Inspect Outbound Payload</button>
-        <pre class="payload-json" id="payload-${index}">${sampleJson}</pre>
-      `;
-
-      const inspectBtn = card.querySelector(`#inspect-btn-${index}`) as HTMLButtonElement;
-      const payloadPre = card.querySelector(`#payload-${index}`) as HTMLElement;
-
-      inspectBtn?.addEventListener("click", () => {
-        const isOpen = payloadPre.classList.toggle("open");
-        inspectBtn.textContent = isOpen ? "Hide Outbound Payload" : "Inspect Outbound Payload";
-      });
-
-      vaultContainer.appendChild(card);
+  if (btnOpenVault) {
+    btnOpenVault.addEventListener("click", () => {
+      if (typeof chrome !== "undefined" && chrome.tabs) {
+        chrome.tabs.create({ url: chrome.runtime.getURL("vault.html") });
+      } else {
+        window.open("vault.html", "_blank");
+      }
     });
   }
 
-  function loadVaultTransmissions() {
+  function updateVaultCount() {
     if (typeof chrome !== "undefined" && chrome.storage?.local) {
       chrome.storage.local.get(["vault_transmissions"], (res: any) => {
         const list = res?.vault_transmissions || [];
-        renderVault(list);
+        if (vaultCount) vaultCount.textContent = `${list.length}`;
       });
-    } else {
-      renderVault([]);
     }
   }
 
-  if (clearVaultBtn) {
-    clearVaultBtn.addEventListener("click", () => {
-      if (typeof chrome !== "undefined" && chrome.storage?.local) {
-        chrome.storage.local.remove(["vault_transmissions"], () => {
-          renderVault([]);
-        });
-      } else {
-        renderVault([]);
-      }
-    });
-  }
-
-  // Listen for background updates to the vault
   if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
     chrome.storage.onChanged.addListener((changes: any, area: string) => {
       if (area === "local" && changes.vault_transmissions) {
-        renderVault(changes.vault_transmissions.newValue || []);
+        const list = changes.vault_transmissions.newValue || [];
+        if (vaultCount) vaultCount.textContent = `${list.length}`;
       }
     });
   }
 
-  // Initial load
-  loadVaultTransmissions();
+  updateVaultCount();
 });

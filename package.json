@@ -4,7 +4,7 @@
   "description": "Browser agent prototype with client-side PII redaction pipeline",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && esbuild src/background/index.ts --bundle --target=es2022 --outfile=dist/background.bundle.js && esbuild src/content/index.ts --bundle --target=es2022 --outfile=dist/content.bundle.js && esbuild src/popup/index.ts --bundle --target=es2022 --outfile=dist/popup.bundle.js",
+    "build": "tsc --noEmit && esbuild src/background/index.ts --bundle --target=es2022 --outfile=dist/background.bundle.js && esbuild src/content/index.ts --bundle --target=es2022 --outfile=dist/content.bundle.js && esbuild src/popup/index.ts --bundle --target=es2022 --outfile=dist/popup.bundle.js && esbuild src/vault/index.ts --bundle --target=es2022 --outfile=dist/vault.bundle.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

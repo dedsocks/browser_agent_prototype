@@ -32,6 +32,55 @@ export async function executeDomAction(
     };
   }
 
+function showActionToast(message: string) {
+  if (typeof document === "undefined") return;
+  let toast = document.getElementById("__agent_action_toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "__agent_action_toast";
+    toast.style.cssText = `
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1b4b;
+      color: #c7d2fe;
+      border: 1px solid #6366f1;
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      z-index: 2147483646;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = `🤖 Agent: ${message}`;
+  toast.style.opacity = "1";
+  toast.style.transform = "translateX(-50%) translateY(0)";
+
+  setTimeout(() => {
+    if (toast) {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(-50%) translateY(-6px)";
+    }
+  }, 1800);
+}
+
+function flashElement(el: HTMLElement) {
+  const origOutline = el.style.outline;
+  const origBoxShadow = el.style.boxShadow;
+  el.style.outline = "2px solid #6366f1";
+  el.style.boxShadow = "0 0 12px rgba(99, 102, 241, 0.6)";
+  setTimeout(() => {
+    el.style.outline = origOutline;
+    el.style.boxShadow = origBoxShadow;
+  }, 600);
+}
+
   try {
     switch (action.type) {
       case "click": {
@@ -43,7 +92,7 @@ export async function executeDomAction(
           el = document.querySelector(action.target.cssSelector) as HTMLElement;
         }
 
-        if (!el) {
+        if (!el && action.target) {
           const res = resolveTargetElement(action.target);
           if (res.found && res.nodeId) {
             el = document.getElementById(res.nodeId);
@@ -57,6 +106,9 @@ export async function executeDomAction(
             durationMs: Date.now() - startTime
           };
         }
+
+        showActionToast(`Clicking ${el.tagName.toLowerCase()}${el.id ? ` #${el.id}` : ""}`);
+        flashElement(el);
 
         // Focus element before click
         el.focus();
@@ -75,6 +127,13 @@ export async function executeDomAction(
           el = document.querySelector(action.target.cssSelector) as any;
         }
 
+        if (!el && action.target) {
+          const res = resolveTargetElement(action.target);
+          if (res.found && res.nodeId) {
+            el = document.getElementById(res.nodeId) as any;
+          }
+        }
+
         if (!el) {
           return {
             success: false,
@@ -83,8 +142,21 @@ export async function executeDomAction(
           };
         }
 
+        showActionToast(`Typing into ${el.tagName.toLowerCase()}${el.id ? ` #${el.id}` : ""}`);
+        flashElement(el);
+
         el.focus();
-        el.value = action.value || "";
+        const valueToType = action.value || "";
+        
+        // Support React/Vue framework controlled inputs
+        const prototype = Object.getPrototypeOf(el);
+        const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
+        if (prototypeValueSetter) {
+          prototypeValueSetter.call(el, valueToType);
+        } else {
+          el.value = valueToType;
+        }
+
         el.dispatchEvent(new Event("input", { bubbles: true }));
         el.dispatchEvent(new Event("change", { bubbles: true }));
         return { success: true, durationMs: Date.now() - startTime };

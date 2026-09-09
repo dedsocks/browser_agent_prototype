@@ -29,7 +29,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["demo.html", "dist/*"],
+      "resources": ["demo.html", "vault.html", "dist/*"],
       "matches": ["<all_urls>"]
     }
   ],

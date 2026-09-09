@@ -153,7 +153,10 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     chrome.runtime.onMessage.addListener(
       (msg: any, _sender: any, sendResponse: (response?: any) => void) => {
         if (msg?.type === "TRIGGER_PERCEPTION_CYCLE" && msg.cycle_id) {
-          triggerPerceptionPass(msg.cycle_id).then(() => sendResponse({ status: "ACK" }));
+          const snapshot = extractDomSnapshot(document.body);
+          triggerPerceptionPass(msg.cycle_id).then(() => {
+            sendResponse({ status: "ACK", dom_snapshot: snapshot });
+          });
           return true;
         }
         if (msg?.type === "CLEAR_OVERLAYS") {

@@ -31,8 +31,6 @@
 
     body {
       width: 360px;
-      min-height: 480px;
-      max-height: 600px;
       background: var(--bg);
       color: var(--text);
       padding: 16px;
@@ -269,163 +267,58 @@
       transform: translateX(16px);
     }
 
-    /* Section 3: Server Transmission Vault */
-    .vault-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 180px;
-    }
-
-    .vault-header {
+    /* Section 3: Server Transmission Vault Launcher */
+    .vault-launcher-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .vault-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .vault-badge {
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-muted);
-      padding: 2px 6px;
-      border-radius: 999px;
-    }
-
-    .clear-btn {
-      background: none;
-      border: none;
-      color: var(--text-subtle);
-      font-size: 11px;
-      cursor: pointer;
-      padding: 2px 4px;
-    }
-
-    .clear-btn:hover {
-      color: var(--text-muted);
-      text-decoration: underline;
-    }
-
-    .vault-container {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 250px;
-      padding-right: 2px;
-    }
-
-    .vault-empty {
-      background: rgba(20, 27, 45, 0.5);
-      border: 1px dashed var(--border);
-      border-radius: 8px;
-      padding: 24px 16px;
-      text-align: center;
-      color: var(--text-subtle);
-      font-size: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .vault-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px 14px;
+      transition: border-color 0.2s;
+    }
+
+    .vault-launcher-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .vault-launcher-text {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 2px;
     }
 
-    .vault-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-    }
-
-    .vault-time {
-      color: var(--text-subtle);
-    }
-
-    .vault-tag {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-
-    .vault-url {
-      font-size: 11px;
-      color: var(--text-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .tokens-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 2px;
-    }
-
-    .token-chip {
-      font-family: monospace;
-      font-size: 10px;
-      background: var(--token-bg);
-      color: var(--token-text);
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-    }
-
-    .inspect-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 10px;
-      cursor: pointer;
-      align-self: flex-start;
-      margin-top: 4px;
-    }
-
-    .inspect-btn:hover {
-      background: rgba(255, 255, 255, 0.05);
+    .vault-launcher-title {
+      font-weight: 500;
+      font-size: 13px;
       color: var(--text);
     }
 
-    .payload-json {
-      background: #060911;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 8px;
-      font-family: monospace;
-      font-size: 10px;
-      color: #93c5fd;
-      max-height: 120px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin-top: 4px;
-      display: none;
+    .vault-launcher-desc {
+      font-size: 11px;
+      color: var(--text-muted);
     }
 
-    .payload-json.open {
-      display: block;
+    .vault-open-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--token-text);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .vault-open-btn:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
     }
 
     .header-actions {
@@ -564,21 +457,22 @@
     </div>
   </section>
 
-  <!-- Option 3: Vault -->
-  <section class="vault-section">
-    <div class="vault-header">
-      <div class="vault-title-wrap">
-        <span class="section-title" style="margin-bottom: 0;">3. Transmission Vault</span>
-        <span id="vault-count" class="vault-badge">0</span>
+  <!-- Option 3: Server Transmission Vault -->
+  <section>
+    <div class="section-title">3. Server Transmission Vault</div>
+    <div class="vault-launcher-card">
+      <div class="vault-launcher-text">
+        <div class="vault-launcher-title">Outbound Audit Log</div>
+        <div class="vault-launcher-desc"><span id="vault-count">0</span> transmissions logged</div>
       </div>
-      <button id="btn-clear-vault" class="clear-btn">Clear</button>
-    </div>
-
-    <div id="vault-container" class="vault-container">
-      <div id="vault-empty-state" class="vault-empty">
-        <span>No server transmissions yet.</span>
-        <span style="font-size: 11px;">Run a task to inspect outbound sanitized payloads.</span>
-      </div>
+      <button id="btn-open-vault" class="vault-open-btn" title="Open Full Vault in New Tab">
+        <span>Open Vault</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </button>
     </div>
   </section>
 
