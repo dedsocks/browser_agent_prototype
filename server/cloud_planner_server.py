@@ -67,24 +67,32 @@ def extract_json(raw: str) -> dict:
 SYSTEM_INSTRUCTION = """You are an autonomous web browser agent planner adhering to Constitution v1.5.0.
 You will receive:
 1. User Goal: Natural language task intent.
-2. Token Manifest: List of semantic privacy tokens (e.g. <REDACTED_CREDENTIAL>, <REDACTED_CONTACT>, <REDACTED_FINANCIAL>).
+2. Active URL: The live web page URL currently open in the user's browser.
+3. Token Manifest: List of semantic privacy tokens (e.g. <REDACTED_CREDENTIAL>, <REDACTED_CONTACT>, <REDACTED_FINANCIAL>).
    These tokens represent sensitive values pre-redacted locally by the browser extension's fail-closed privacy boundary.
    NEVER attempt to guess, reconstruct, or output sensitive data.
-3. Sanitized DOM Tree: The structural hierarchy of interactive and visible elements on the active webpage.
+4. Sanitized DOM Tree: The structural hierarchy of interactive and visible elements on the active webpage.
 
 Your task:
-Analyze the page structure and determine the single next optimal action to advance the user's goal.
+Analyze the page structure and determine the SINGLE NEXT ACTION to advance the user's goal on the real webpage.
+
+Guidelines for real-world sites:
+- Form inputs: If user specified names/emails in their prompt, use them. Otherwise, provide realistic user test values (e.g. "Alex Morgan", "alex.morgan@example.com").
+- Password fields: For any password or credential field, target the field with "type" and value "<USER_PASSWORD_PLACEHOLDER>". The client-side ActionValidator will automatically halt and prompt the human user to enter their secret securely.
+- Submissions & Buttons: Once required form fields are populated, click the submit, sign up, or continue button.
+- Selectors: Prefer clean, unambiguous selectors: ID (e.g. #name), name (e.g. input[name="email"]), type (e.g. button[type="submit"]), or text-matching classes.
+
 Permitted action types:
 - "click": Click an interactive element (button, link, checkbox, radio).
-- "type": Enter non-sensitive text into an input or textarea. For password or credential fields, target the field with an arbitrary placeholder; the client-side ActionValidator will automatically halt and prompt the human user.
+- "type": Enter text into an input or textarea.
 - "scroll": Scroll the page viewport if required to reveal elements.
 - "navigate": Navigate to a specific URL if starting a fresh task.
 
 You MUST respond strictly in valid JSON matching this schema:
 {
   "cycle_id": "<echo the cycle_id from the request>",
-  "thought": "<your step-by-step reasoning explaining why you selected this action>",
-  "is_terminal": <true if the overall goal has been completed or cannot proceed, false otherwise>,
+  "thought": "<your step-by-step reasoning explaining what you observe and why you selected this action>",
+  "is_terminal": <true ONLY if the overall goal has been completely achieved or cannot proceed, false otherwise>,
   "result_summary": "<optional summary if is_terminal is true>",
   "action": {
     "id": "act_<timestamp>",
@@ -122,12 +130,13 @@ Session ID: {request_payload.get('session_id')}
 Cycle ID: {cycle_id}
 Step Index: {request_payload.get('step_index', 0)}
 Goal: {request_payload.get('goal')}
+Active URL: {request_payload.get('active_url', 'N/A')}
 Active Token Manifest: {json.dumps(request_payload.get('token_manifest', []))}
 
 Sanitized DOM Tree:
 {json.dumps(request_payload.get('sanitized_payload', {}).get('sanitized_dom_tree', {}), indent=2)}
 
-Determine the next step. Return strictly JSON adhering to the schema.
+Determine the single next action. Return strictly JSON adhering to the schema.
 """
     body = {
         "contents": [
@@ -170,12 +179,13 @@ Session ID: {request_payload.get('session_id')}
 Cycle ID: {cycle_id}
 Step Index: {request_payload.get('step_index', 0)}
 Goal: {request_payload.get('goal')}
+Active URL: {request_payload.get('active_url', 'N/A')}
 Active Token Manifest: {json.dumps(request_payload.get('token_manifest', []))}
 
 Sanitized DOM Tree:
 {json.dumps(request_payload.get('sanitized_payload', {}).get('sanitized_dom_tree', {}), indent=2)}
 
-Determine the next step. Return strictly JSON.
+Determine the single next action. Return strictly JSON.
 """
     body = {
         "model": MODEL_NAME,

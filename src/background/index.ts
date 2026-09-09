@@ -31,8 +31,21 @@ export function initControllerWithPlanner(planner: any): AgentController {
       if (typeof chrome !== "undefined" && chrome.tabs?.query) {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab?.id) {
-          const res = await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_PERCEPTION_CYCLE", cycle_id: `cycle_${Date.now()}` });
-          return res?.dom_snapshot;
+          try {
+            const res = await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_PERCEPTION_CYCLE", cycle_id: `cycle_${Date.now()}` });
+            if (res?.dom_snapshot) return res.dom_snapshot;
+          } catch {
+            // Tab was opened before extension reload; inject content script on-demand
+            if (chrome.scripting) {
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ["dist/content.bundle.js"]
+              });
+              await new Promise(r => setTimeout(r, 250));
+              const res = await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_PERCEPTION_CYCLE", cycle_id: `cycle_${Date.now()}` });
+              if (res?.dom_snapshot) return res.dom_snapshot;
+            }
+          }
         }
       }
       throw new Error("No active browser tab accessible");

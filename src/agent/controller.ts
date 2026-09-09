@@ -191,6 +191,7 @@ export class AgentController {
         token_manifest: sanitizedEnvelope.token_manifest,
         sanitized_payload: sanitizedEnvelope
       };
+      (plannerRequest as any).active_url = session.activeUrl;
 
       // 5. Reason: Ask planner for next action
       const plannerResponse = await this.planner.planStep(plannerRequest);
@@ -308,8 +309,8 @@ export class AgentController {
       if (outcome.isTerminal) {
         return outcome;
       }
-      // Brief pause between actions
-      await new Promise(r => setTimeout(r, 400));
+      // Pause between actions to allow real-world DOM updates to settle
+      await new Promise(r => setTimeout(r, 1000));
     }
     return { success: true, isTerminal: true };
   }
