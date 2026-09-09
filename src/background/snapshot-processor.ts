@@ -191,6 +191,33 @@ export async function handleDomSnapshotRequest(
       };
     }
 
+    // Record verified transmission in Vault
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const vaultRecord = {
+        id: cycle_id,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        url: request.url || "Active Tab",
+        goal: (request as any).goal || "DOM Snapshot Sanitization",
+        schemaVersion: "1.5.0",
+        tokenManifest: manifest.entities.map(e => e.token),
+        entitiesRedactedCount: manifest.entities.length,
+        entities: manifest.entities.map(e => ({
+          category: e.category,
+          token: e.token,
+          nodeId: e.nodeId
+        })),
+        sanitizedDomSample: JSON.stringify(payload.sanitized_dom_tree, null, 2),
+        durationMs
+      };
+
+      chrome.storage.local.get(["vault_transmissions"], (res: any) => {
+        const list = res?.vault_transmissions || [];
+        list.unshift(vaultRecord);
+        if (list.length > 50) list.pop();
+        chrome.storage.local.set({ vault_transmissions: list });
+      });
+    }
+
     // 5. Construct Overlay Markers (skip hidden inputs)
     const overlayMarkers: AuditOverlayMarker[] = entities
       .filter(e => {

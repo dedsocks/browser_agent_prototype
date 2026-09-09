@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Boundary Control</title>
+  <title>Browser Agent</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.7);
-      --border: rgba(255, 255, 255, 0.1);
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
+      --bg: #0b0f19;
+      --card-bg: #141b2d;
+      --card-hover: #1a233a;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
       --text: #f8fafc;
       --text-muted: #94a3b8;
+      --text-subtle: #64748b;
       --success: #10b981;
       --danger: #ef4444;
-      --financial: #e53e3e;
-      --identity: #ed8936;
-      --credential: #ecc94b;
-      --contact: #3182ce;
+      --token-bg: rgba(99, 102, 241, 0.15);
+      --token-text: #a5b4fc;
     }
 
     * {
@@ -29,229 +30,469 @@
     }
 
     body {
-      width: 320px;
+      width: 360px;
+      min-height: 480px;
+      max-height: 600px;
       background: var(--bg);
       color: var(--text);
       padding: 16px;
       font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-x: hidden;
     }
 
+    /* Header */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
 
-    .logo-title {
-      font-weight: 700;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .version-tag {
-      font-size: 10px;
-      background: rgba(59, 130, 246, 0.2);
-      color: #60a5fa;
-      padding: 2px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-
-    .status-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(8px);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 14px;
+    .brand {
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 8px var(--success);
-    }
-
-    .status-info {
-      font-size: 12px;
-      color: #e2e8f0;
-      font-weight: 500;
-    }
-
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    button {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: none;
-      font-size: 12px;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .brand-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      width: 24px;
+      height: 24px;
+      background: rgba(99, 102, 241, 0.2);
+      border-radius: 6px;
+      color: #818cf8;
     }
 
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-hover);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .legend-title {
+    .status-pill {
       font-size: 11px;
-      font-weight: 600;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-
-    .legend-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
-    .legend-item {
+      background: var(--card-bg);
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 11px;
-      color: #cbd5e1;
-      background: rgba(15, 23, 42, 0.6);
-      padding: 4px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .legend-color {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .status-dot.busy {
+      background: #f59e0b;
+      animation: pulse 1s infinite alternate;
+    }
+
+    .status-dot.listening {
+      background: var(--danger);
+      animation: pulse 0.6s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    /* Section 1: User Input */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-subtle);
+      margin-bottom: 6px;
+    }
+
+    .input-bar {
+      display: flex;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      transition: border-color 0.2s;
+    }
+
+    .input-bar:focus-within {
+      border-color: var(--border-focus);
+    }
+
+    .task-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 13px;
+      padding: 8px 10px;
+    }
+
+    .task-input::placeholder {
+      color: var(--text-subtle);
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .icon-btn.recording {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.15);
+      animation: pulse 0.8s infinite alternate;
+    }
+
+    .run-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .run-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .run-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Section 2: PII Boxes Toggle */
+    .toggle-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-title {
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .toggle-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Modern Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
       flex-shrink: 0;
     }
 
-    .footer {
-      margin-top: 14px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
-      text-align: center;
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #334155;
+      transition: 0.2s;
+      border-radius: 22px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.2s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Section 3: Server Transmission Vault */
+    .vault-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 180px;
+    }
+
+    .vault-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .vault-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vault-badge {
       font-size: 10px;
+      background: rgba(255, 255, 255, 0.08);
       color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--text-subtle);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+
+    .clear-btn:hover {
+      color: var(--text-muted);
+      text-decoration: underline;
+    }
+
+    .vault-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 250px;
+      padding-right: 2px;
+    }
+
+    .vault-empty {
+      background: rgba(20, 27, 45, 0.5);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-subtle);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .vault-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .vault-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .vault-time {
+      color: var(--text-subtle);
+    }
+
+    .vault-tag {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .vault-url {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tokens-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .token-chip {
+      font-family: monospace;
+      font-size: 10px;
+      background: var(--token-bg);
+      color: var(--token-text);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .inspect-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      align-self: flex-start;
+      margin-top: 4px;
+    }
+
+    .inspect-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .payload-json {
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 10px;
+      color: #93c5fd;
+      max-height: 120px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .payload-json.open {
+      display: block;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo-title">
-      🛡️ Privacy Boundary
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <span>Browser Agent</span>
     </div>
-    <span class="version-tag">v1.5.0</span>
-  </div>
+    <div class="status-pill">
+      <span id="status-dot" class="status-dot"></span>
+      <span id="status-text">Ready</span>
+    </div>
+  </header>
 
-  <div class="status-card">
-    <div class="status-dot"></div>
-    <div id="status-text" class="status-info">Privacy Boundary Armed (Fail-Closed)</div>
-  </div>
+  <!-- Option 1: User Input -->
+  <section>
+    <div class="section-title">1. Task Input</div>
+    <div class="input-bar">
+      <input type="text" id="task-input" class="task-input" placeholder="Enter task or instruction..." />
+      <button id="btn-voice-input" class="icon-btn" title="Voice Input" aria-label="Voice Input">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+      </button>
+      <button id="btn-submit" class="run-btn">Run</button>
+    </div>
+  </section>
 
-  <div style="margin-bottom: 12px;">
-    <label for="task-input" style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;">
-      Agent Task Goal
-    </label>
-    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-      <input type="text" id="task-input" placeholder="e.g. Find cheap flights or fill form" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); color: var(--text); font-size: 12px;" />
-      <button id="btn-voice-input" class="btn-secondary" title="Voice Input (Local Transcription - 0% Audio Leakage)" style="padding: 8px 10px;">
-        🎤
-      </button>
+  <!-- Option 2: Visual Highlight Toggle -->
+  <section>
+    <div class="section-title">2. Visual Display</div>
+    <div class="toggle-card">
+      <div class="toggle-text">
+        <div class="toggle-title">PII Highlight Boxes</div>
+        <div class="toggle-desc">Show on-page visual boxes (client-side only)</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-pii-boxes" checked />
+        <span class="slider"></span>
+      </label>
     </div>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-      <button id="btn-start-task" class="btn-primary" style="background: #10B981;">
-        ▶ Start Task
-      </button>
-      <button id="btn-pause-task" class="btn-secondary">
-        ⏸ Pause
-      </button>
-    </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
-      <button id="btn-resume-task" class="btn-secondary">
-        ⏯ Resume
-      </button>
-      <button id="btn-abort-task" class="btn-secondary" style="color: #EF4444;">
-        ⏹ Abort
-      </button>
-    </div>
-    <button id="btn-run-step" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">
-      ⚡ Run Next Cycle Step
-    </button>
-  </div>
+  </section>
 
-  <div class="btn-group">
-    <button id="btn-scan" class="btn-primary">
-      🔍 Scan & Protect Active Tab
-    </button>
-    <button id="btn-demo" class="btn-secondary">
-      🧪 Open Test / Demo Form
-    </button>
-    <button id="btn-clear" class="btn-secondary">
-      🧹 Clear Audit Overlays
-    </button>
-  </div>
+  <!-- Option 3: Vault -->
+  <section class="vault-section">
+    <div class="vault-header">
+      <div class="vault-title-wrap">
+        <span class="section-title" style="margin-bottom: 0;">3. Transmission Vault</span>
+        <span id="vault-count" class="vault-badge">0</span>
+      </div>
+      <button id="btn-clear-vault" class="clear-btn">Clear</button>
+    </div>
 
-  <div class="legend-title">Protected Categories</div>
-  <div class="legend-grid">
-    <div class="legend-item">
-      <span class="legend-color" style="background: var(--financial);"></span>
-      <span>Financial Cards</span>
+    <div id="vault-container" class="vault-container">
+      <div id="vault-empty-state" class="vault-empty">
+        <span>No server transmissions yet.</span>
+        <span style="font-size: 11px;">Run a task to inspect outbound sanitized payloads.</span>
+      </div>
     </div>
-    <div class="legend-item">
-      <span class="legend-color" style="background: var(--identity);"></span>
-      <span>National IDs</span>
-    </div>
-    <div class="legend-item">
-      <span class="legend-color" style="background: var(--credential);"></span>
-      <span>Credentials</span>
-    </div>
-    <div class="legend-item">
-      <span class="legend-color" style="background: var(--contact);"></span>
-      <span>Contact Info</span>
-    </div>
-  </div>
-
-  <div class="footer">
-    0% Plaintext Leakage Guarantee • Non-Destructive DOM
-  </div>
+  </section>
 
   <script src="dist/popup.bundle.js"></script>
 </body>

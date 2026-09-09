@@ -15,11 +15,29 @@ import {
 
 declare const chrome: any;
 
+let piiBoxesVisible = true;
+
+// Load persisted user preference for overlay visibility
+if (typeof chrome !== "undefined" && chrome.storage?.local) {
+  chrome.storage.local.get(["pii_overlays_enabled"], (res: any) => {
+    if (typeof res?.pii_overlays_enabled === "boolean") {
+      piiBoxesVisible = res.pii_overlays_enabled;
+      if (!piiBoxesVisible) {
+        auditOverlayManager.clear();
+      }
+    }
+  });
+}
+
 function applyResponse(response: DomSanitizationSuccessResponse | DomSanitizationFailureResponse) {
   if (!response) return;
 
   if (response.type === "DOM_SANITIZATION_SUCCESS") {
-    auditOverlayManager.renderMarkersImmediate(response.overlay_markers);
+    if (piiBoxesVisible) {
+      auditOverlayManager.renderMarkersImmediate(response.overlay_markers);
+    } else {
+      auditOverlayManager.clear();
+    }
   } else if (response.type === "DOM_SANITIZATION_FAILURE") {
     console.warn("[Privacy Boundary] DOM sanitization halted:", response.diagnostic_message);
     auditOverlayManager.clear();
@@ -141,6 +159,23 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
         if (msg?.type === "CLEAR_OVERLAYS") {
           auditOverlayManager.clear();
           sendResponse({ status: "CLEARED" });
+          return false;
+        }
+        if (msg?.type === "SET_OVERLAYS_ENABLED") {
+          piiBoxesVisible = Boolean(msg.enabled);
+          if (typeof chrome !== "undefined" && chrome.storage?.local) {
+            chrome.storage.local.set({ pii_overlays_enabled: piiBoxesVisible });
+          }
+          if (piiBoxesVisible) {
+            triggerPerceptionPass(`toggle-on-${Date.now()}`);
+          } else {
+            auditOverlayManager.clear();
+          }
+          sendResponse({ success: true, piiBoxesVisible });
+          return false;
+        }
+        if (msg?.type === "GET_OVERLAYS_ENABLED") {
+          sendResponse({ piiBoxesVisible });
           return false;
         }
         if (msg?.type === "RESOLVE_TARGET_ELEMENT") {

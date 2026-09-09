@@ -90,7 +90,34 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
           initControllerWithPlanner(new MockPlannerClient([]));
         }
         const session = activeController!.startTask(message.goal, message.url || "");
-        sendResponse({ success: true, session });
+        // Immediately run first perception-action cycle to sanitize and transmit
+        activeController!.runNextCycle().then((outcome) => {
+          sendResponse({ success: true, session, outcome });
+        }).catch((err) => {
+          sendResponse({ success: false, error: err?.message, session });
+        });
+        return true;
+      }
+
+      if (message?.type === "GET_VAULT_TRANSMISSIONS") {
+        if (typeof chrome !== "undefined" && chrome.storage?.local) {
+          chrome.storage.local.get(["vault_transmissions"], (res: any) => {
+            sendResponse({ transmissions: res?.vault_transmissions || [] });
+          });
+          return true;
+        }
+        sendResponse({ transmissions: [] });
+        return false;
+      }
+
+      if (message?.type === "CLEAR_VAULT") {
+        if (typeof chrome !== "undefined" && chrome.storage?.local) {
+          chrome.storage.local.remove(["vault_transmissions"], () => {
+            sendResponse({ success: true });
+          });
+          return true;
+        }
+        sendResponse({ success: true });
         return false;
       }
 
