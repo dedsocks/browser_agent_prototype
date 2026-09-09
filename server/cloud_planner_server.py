@@ -14,15 +14,55 @@ Principle XV: Observe -> Detect -> Sanitize -> Verify -> Transmit -> Reason -> V
 import os
 import sys
 import json
+import time
 import urllib.request
 import urllib.error
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+def load_dotenv():
+    """Loads key-value pairs from .env into os.environ if not already set."""
+    candidates = [
+        os.path.join(os.getcwd(), ".env"),
+        os.path.join(os.path.dirname(__file__), ".env"),
+        os.path.join(os.path.dirname(__file__), "../.env")
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'").strip('"')
+                        if k not in os.environ:
+                            os.environ[k] = v
+            break
+
+load_dotenv()
 
 PORT = int(os.environ.get("PORT", "8000"))
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash" if GEMINI_API_KEY else "gpt-4o")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-flash-lite" if GEMINI_API_KEY else "gpt-4o")
+
+def extract_json(raw: str) -> dict:
+    """Safely extracts JSON object from raw LLM text, handling markdown fences and lists."""
+    cleaned = raw.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        cleaned = "\n".join(lines).strip()
+    data = json.loads(cleaned)
+    if isinstance(data, list):
+        data = data[0] if data else {}
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected JSON object from model, got: {type(data)}")
+    return data
 
 SYSTEM_INSTRUCTION = """You are an autonomous web browser agent planner adhering to Constitution v1.5.0.
 You will receive:
@@ -58,6 +98,18 @@ You MUST respond strictly in valid JSON matching this schema:
 }
 Output only the JSON object, without markdown code fences or conversational prose.
 """
+
+def normalize_planner_response(parsed: dict, cycle_id: str) -> dict:
+    """Normalizes output dictionary to strictly satisfy Constitution Schema 1.5.0."""
+    parsed["cycle_id"] = cycle_id
+    if "is_terminal" not in parsed:
+        parsed["is_terminal"] = False
+    if "thought" not in parsed:
+        parsed["thought"] = "Action evaluated by reasoning model"
+    if "action" in parsed and isinstance(parsed["action"], dict):
+        if "id" not in parsed["action"]:
+            parsed["action"]["id"] = f"act_{int(time.time() * 1000)}"
+    return parsed
 
 def call_gemini(request_payload: dict) -> dict:
     """Invokes Google Gemini API with structured thinking instructions."""
@@ -99,10 +151,13 @@ Determine the next step. Return strictly JSON adhering to the schema.
     
     with urllib.request.urlopen(req, timeout=30) as resp:
         res_data = json.loads(resp.read().decode("utf-8"))
-        raw_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(raw_text)
-        parsed["cycle_id"] = cycle_id
-        return parsed
+        parts = res_data["candidates"][0]["content"]["parts"]
+        raw_text = ""
+        for p in parts:
+            if "text" in p and p["text"]:
+                raw_text = p["text"]
+        parsed = extract_json(raw_text)
+        return normalize_planner_response(parsed, cycle_id)
 
 def call_openai_compatible(request_payload: dict) -> dict:
     """Invokes OpenAI-compatible endpoint (OpenAI, Claude proxy, DeepSeek, Ollama)."""
@@ -146,9 +201,8 @@ Determine the next step. Return strictly JSON.
     with urllib.request.urlopen(req, timeout=30) as resp:
         res_data = json.loads(resp.read().decode("utf-8"))
         raw_text = res_data["choices"][0]["message"]["content"]
-        parsed = json.loads(raw_text)
-        parsed["cycle_id"] = cycle_id
-        return parsed
+        parsed = extract_json(raw_text)
+        return normalize_planner_response(parsed, cycle_id)
 
 def plan_with_model(request_payload: dict) -> dict:
     """Dispatches to the configured model backend."""
