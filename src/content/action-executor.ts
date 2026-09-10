@@ -15,23 +15,6 @@ export interface DomExecutionResult {
   durationMs: number;
 }
 
-/**
- * Dispatches a validated action to the live DOM.
- */
-export async function executeDomAction(
-  action: AgentAction,
-  validationResult: ValidationResult
-): Promise<DomExecutionResult> {
-  const startTime = Date.now();
-
-  if (!validationResult.isValid) {
-    return {
-      success: false,
-      error: `Validation failed: ${validationResult.diagnosticMessage || validationResult.errorCode}`,
-      durationMs: Date.now() - startTime
-    };
-  }
-
 function showActionToast(message: string) {
   if (typeof document === "undefined") return;
   let toast = document.getElementById("__agent_action_toast");
@@ -80,6 +63,23 @@ function flashElement(el: HTMLElement) {
     el.style.boxShadow = origBoxShadow;
   }, 600);
 }
+
+/**
+ * Dispatches a validated action to the live DOM.
+ */
+export async function executeDomAction(
+  action: AgentAction,
+  validationResult: ValidationResult
+): Promise<DomExecutionResult> {
+  const startTime = Date.now();
+
+  if (!validationResult.isValid) {
+    return {
+      success: false,
+      error: `Validation failed: ${validationResult.diagnosticMessage || validationResult.errorCode}`,
+      durationMs: Date.now() - startTime
+    };
+  }
 
   try {
     switch (action.type) {

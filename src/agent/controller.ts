@@ -146,10 +146,17 @@ export class AgentController {
       if (!this.snapshotProvider) {
         throw new Error("No snapshotProvider registered on AgentController");
       }
+      console.log(`[Agent][${cycleId}] Step 1: Requesting DOM snapshot...`);
       const domSnapshot = await this.snapshotProvider();
+      console.log(`[Agent][${cycleId}] Step 1 complete: Got ${domSnapshot.nodes.length} nodes`);
+
+      if (domSnapshot.url) {
+        session.activeUrl = domSnapshot.url;
+      }
 
       // 2 & 3. Detect, Sanitize, and Verify via background privacy pipeline
       this.sessionManager.transitionTo(TaskState.SANITIZING);
+      console.log(`[Agent][${cycleId}] Step 2-3: Running sanitization pipeline...`);
       const sanitizationResponse = await handleDomSnapshotRequest({
         type: "PROCESS_DOM_SNAPSHOT",
         cycle_id: cycleId,
@@ -159,9 +166,11 @@ export class AgentController {
       });
 
       if (sanitizationResponse.type === "DOM_SANITIZATION_FAILURE") {
+        console.error(`[Agent][${cycleId}] Sanitization FAILED:`, sanitizationResponse.diagnostic_message);
         this.sessionManager.fail(`Privacy sanitization failed fail-closed: ${sanitizationResponse.diagnostic_message}`);
         return { success: false, error: sanitizationResponse.diagnostic_message };
       }
+      console.log(`[Agent][${cycleId}] Step 2-3 complete: ${sanitizationResponse.overlay_markers.length} entities redacted`);
 
       // 4. Transmit: Construct Schema v1.5.0 envelope for VLM planner
       this.sessionManager.transitionTo(TaskState.AWAITING_REASONING);
@@ -194,7 +203,9 @@ export class AgentController {
       (plannerRequest as any).active_url = session.activeUrl;
 
       // 5. Reason: Ask planner for next action
+      console.log(`[Agent][${cycleId}] Step 5: Sending to planner...`);
       const plannerResponse = await this.planner.planStep(plannerRequest);
+      console.log(`[Agent][${cycleId}] Step 5 complete: is_terminal=${plannerResponse.is_terminal}, action=${plannerResponse.action?.type || 'none'}`);
 
       if (plannerResponse.is_terminal) {
         this.sessionManager.recordStep({
@@ -215,13 +226,16 @@ export class AgentController {
 
       // 6. Validate: Re-resolve target and validate safety & secrets locally
       this.sessionManager.transitionTo(TaskState.VALIDATING_ACTION);
+      console.log(`[Agent][${cycleId}] Step 6: Validating action ${action.type} on target ${JSON.stringify(action.target)}...`);
 
       let targetInfo: ResolveTargetElementResponse | undefined;
       if (action.target && this.targetResolver) {
         targetInfo = await this.targetResolver(action.target);
+        console.log(`[Agent][${cycleId}] Target resolved: found=${targetInfo?.found}, visible=${targetInfo?.isVisible}, credential=${targetInfo?.isCredentialField}`);
       }
 
       const validationResult = this.validator.validateProposedAction(action, targetInfo);
+      console.log(`[Agent][${cycleId}] Validation result: valid=${validationResult.isValid}, intervention=${validationResult.requiresIntervention}, error=${validationResult.errorCode}`);
 
       // Check Human-in-the-Loop Secret Intervention (Constitution Article XIII)
       if (validationResult.requiresIntervention) {
@@ -260,12 +274,14 @@ export class AgentController {
 
       // 7. Execute: Dispatch validated action on live DOM
       this.sessionManager.transitionTo(TaskState.EXECUTING_ACTION);
+      console.log(`[Agent][${cycleId}] Step 7: Executing ${action.type} action...`);
 
       if (!this.actionExecutor) {
         throw new Error("No actionExecutor registered on AgentController");
       }
 
       const executionOutcome = await this.actionExecutor(action, validationResult);
+      console.log(`[Agent][${cycleId}] Step 7 complete: success=${executionOutcome.success}, duration=${executionOutcome.durationMs}ms, error=${executionOutcome.error}`);
 
       this.sessionManager.recordStep({
         stepIndex: session.totalCyclesCompleted,
@@ -288,6 +304,7 @@ export class AgentController {
       return { success: true, isTerminal: false };
 
     } catch (err: any) {
+      console.error(`[Agent][${cycleId}] Cycle error:`, err?.message || err);
       this.sessionManager.fail(err?.message || "Internal error in perception-action loop");
       return { success: false, error: err?.message };
     }
