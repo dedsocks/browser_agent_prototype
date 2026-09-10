@@ -47,6 +47,9 @@ export class WebSpeechTranscriber implements ISpeechTranscriber {
     this.recognition.lang = "en-US";
     this.buffersDisposed = false;
 
+    let hasHandledFinal = false;
+    let accumulatedText = "";
+
     this.recognition.onresult = (event: any) => {
       let interimTranscript = "";
       let finalTranscript = "";
@@ -60,9 +63,12 @@ export class WebSpeechTranscriber implements ISpeechTranscriber {
       }
 
       if (interimTranscript) {
+        accumulatedText = interimTranscript;
         onInterim(interimTranscript);
       }
       if (finalTranscript) {
+        accumulatedText = finalTranscript;
+        hasHandledFinal = true;
         onFinal(finalTranscript);
         this.disposeAudioBuffers();
       }
@@ -70,18 +76,32 @@ export class WebSpeechTranscriber implements ISpeechTranscriber {
 
     this.recognition.onerror = (event: any) => {
       this.disposeAudioBuffers();
-      onError(event.error || "Speech recognition error");
+      if (!hasHandledFinal) {
+        hasHandledFinal = true;
+        onError(event.error || "Speech recognition error");
+      }
     };
 
     this.recognition.onend = () => {
       this.disposeAudioBuffers();
+      if (!hasHandledFinal) {
+        hasHandledFinal = true;
+        if (accumulatedText.trim()) {
+          onFinal(accumulatedText.trim());
+        } else {
+          onError("no-speech");
+        }
+      }
     };
 
     try {
       this.recognition.start();
     } catch (err: any) {
       this.disposeAudioBuffers();
-      onError(err?.message || "Failed to start speech recognition");
+      if (!hasHandledFinal) {
+        hasHandledFinal = true;
+        onError(err?.message || "Failed to start speech recognition");
+      }
     }
   }
 

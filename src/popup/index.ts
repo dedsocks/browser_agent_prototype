@@ -4,6 +4,21 @@ declare const chrome: any;
 
 const voiceManager = new VoiceManager();
 
+function isRestrictedUrl(url?: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase().trim();
+  return (
+    lower.startsWith("chrome://") ||
+    lower.startsWith("chrome-extension://") ||
+    lower.startsWith("edge://") ||
+    lower.startsWith("devtools://") ||
+    lower.startsWith("view-source:") ||
+    lower.startsWith("about:") ||
+    lower.startsWith("https://chrome.google.com/webstore") ||
+    lower.startsWith("https://chromewebstore.google.com")
+  );
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Elements
   const taskInput = document.getElementById("task-input") as HTMLInputElement;
@@ -81,7 +96,16 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           setStatus("Voice captured", "ready");
         } else {
-          setStatus(res.error ? `Voice error: ${res.error}` : "Voice cancelled", "ready");
+          if (res.error === "not-allowed") {
+            setStatus("Mic blocked. Opening tab to allow mic...", "busy");
+            if (typeof chrome !== "undefined" && chrome.tabs) {
+              chrome.tabs.create({ url: chrome.runtime.getURL("vault.html?prompt=mic") });
+            }
+          } else if (res.error === "no-speech") {
+            setStatus("No speech detected. Click mic to retry", "ready");
+          } else {
+            setStatus(res.error ? `Voice error: ${res.error}` : "Voice cancelled", "ready");
+          }
           if (taskInput) taskInput.focus();
         }
       } catch (err: any) {
@@ -114,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 1. Trigger perception cycle on active tab so page is scanned & sanitized
-      if (activeTabId && typeof chrome !== "undefined" && chrome.tabs) {
+      if (activeTabId && typeof chrome !== "undefined" && chrome.tabs && !isRestrictedUrl(currentUrl)) {
         try {
           await chrome.tabs.sendMessage(activeTabId, {
             type: "TRIGGER_PERCEPTION_CYCLE",
@@ -132,10 +156,14 @@ document.addEventListener("DOMContentLoaded", () => {
           (res: any) => {
             if (submitBtn) submitBtn.disabled = false;
             if (res?.success) {
-              if (res?.outcome?.requiresIntervention) {
+              const outcome = res?.outcome;
+              if (outcome?.requiresIntervention) {
                 setStatus("Paused: Enter Password on Page", "busy");
-              } else if (res?.outcome?.isTerminal) {
+              } else if (outcome?.isTerminal) {
                 setStatus("Task Completed", "ready");
+              } else if (outcome?.success === false) {
+                // Loop finished but the cycle itself failed (e.g. server unreachable, sanitization error)
+                setStatus(outcome?.error ? `Error: ${outcome.error}` : "Agent loop failed", "ready");
               } else {
                 setStatus("Running", "busy");
               }
@@ -191,11 +219,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Send state to active tab content script
         if (chrome.tabs) {
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (tab?.id) {
+          if (tab?.id && !isRestrictedUrl(tab.url)) {
             chrome.tabs.sendMessage(tab.id, {
               type: "SET_OVERLAYS_ENABLED",
               enabled
-            });
+            }).catch(() => {});
           }
         }
       }

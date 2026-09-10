@@ -95,5 +95,47 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Check if opened with microphone permission setup request
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("prompt") === "mic") {
+    const mainEl = document.querySelector("main");
+    if (mainEl) {
+      const banner = document.createElement("div");
+      banner.id = "mic-setup-banner";
+      banner.style.cssText = "background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.4); border-radius: 8px; padding: 18px 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;";
+      banner.innerHTML = `
+        <div>
+          <div style="font-weight: 600; color: #a5b4fc; font-size: 14px;">🎤 Grant Microphone Access for Voice Input</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Click the button to allow the extension to transcribe your voice locally. In accordance with Constitution Article XII, audio streams are never recorded or sent to any cloud service.</div>
+        </div>
+        <button id="btn-grant-mic" style="background: #6366f1; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; margin-left: 16px;">Allow Microphone</button>
+      `;
+      mainEl.prepend(banner);
+
+      const grantBtn = document.getElementById("btn-grant-mic");
+      grantBtn?.addEventListener("click", async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(t => t.stop());
+          banner.style.background = "rgba(16,185,129,0.12)";
+          banner.style.borderColor = "rgba(16,185,129,0.4)";
+          banner.innerHTML = `
+            <div style="color: #10b981; font-weight: 500; font-size: 13px;">
+              ✅ Microphone permission granted! You can now return to the extension popup and click the microphone button to dictate tasks.
+            </div>
+          `;
+        } catch (e: any) {
+          banner.style.background = "rgba(239,68,68,0.12)";
+          banner.style.borderColor = "rgba(239,68,68,0.4)";
+          banner.innerHTML = `
+            <div style="color: #ef4444; font-size: 13px;">
+              ⚠️ Microphone permission was not granted (${e.message || e}). Please check your browser's site permissions for this extension tab.
+            </div>
+          `;
+        }
+      });
+    }
+  }
+
   loadVaultTransmissions();
 });
