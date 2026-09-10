@@ -45,7 +45,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-flash-lite" if GEMINI_API_KEY else "gpt-4o")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.5-flash-lite" if GEMINI_API_KEY else "gpt-4o")
 
 def extract_json(raw: str) -> dict:
     """Safely extracts JSON object from raw LLM text, handling markdown fences and lists."""
@@ -120,7 +120,7 @@ def normalize_planner_response(parsed: dict, cycle_id: str) -> dict:
     return parsed
 
 def call_gemini(request_payload: dict) -> dict:
-    """Invokes Google Gemini API with structured thinking instructions."""
+    """Invokes Google Gemini API with structured thinking instructions and retry logic."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
     
     cycle_id = request_payload.get("cycle_id", "cycle_0")
@@ -152,21 +152,47 @@ Determine the single next action. Return strictly JSON adhering to the schema.
         }
     }
     
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-    
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        res_data = json.loads(resp.read().decode("utf-8"))
-        parts = res_data["candidates"][0]["content"]["parts"]
-        raw_text = ""
-        for p in parts:
-            if "text" in p and p["text"]:
-                raw_text = p["text"]
-        parsed = extract_json(raw_text)
-        return normalize_planner_response(parsed, cycle_id)
+    req_data = json.dumps(body).encode("utf-8")
+    retryable_codes = {429, 500, 502, 503}
+    max_retries = 3
+    last_error = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            req = urllib.request.Request(
+                url,
+                data=req_data,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                candidates = res_data.get("candidates", [])
+                if not candidates:
+                    raise ValueError(f"Gemini returned no candidates: {res_data}")
+                parts = candidates[0].get("content", {}).get("parts", [])
+                raw_text = ""
+                for p in parts:
+                    if "text" in p and p["text"]:
+                        raw_text += p["text"]
+                if not raw_text:
+                    raise ValueError(f"No text parts returned in Gemini candidate: {candidates[0]}")
+                parsed = extract_json(raw_text)
+                return normalize_planner_response(parsed, cycle_id)
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8", errors="replace")
+            if he.code in retryable_codes and attempt < max_retries:
+                wait = 2 ** (attempt + 1)  # 2s, 4s, 8s
+                sys.stderr.write(f"[CloudPlannerServer] Gemini HTTP {he.code} (attempt {attempt + 1}/{max_retries + 1}), retrying in {wait}s...\n")
+                time.sleep(wait)
+                last_error = RuntimeError(f"Gemini API returned HTTP {he.code}: {err_body}")
+                continue
+            sys.stderr.write(f"[CloudPlannerServer] Gemini HTTP Error {he.code}: {err_body}\n")
+            raise RuntimeError(f"Gemini API returned HTTP {he.code}: {err_body}") from he
+        except Exception as e:
+            sys.stderr.write(f"[CloudPlannerServer] Gemini reasoning error: {e}\n")
+            raise
+
+    raise last_error or RuntimeError("Gemini API call failed after all retries")
 
 def call_openai_compatible(request_payload: dict) -> dict:
     """Invokes OpenAI-compatible endpoint (OpenAI, Claude proxy, DeepSeek, Ollama)."""
@@ -287,6 +313,9 @@ class PlannerRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(planner_response).encode("utf-8"))
 
         except Exception as e:
+            import traceback
+            sys.stderr.write(f"[CloudPlannerServer] Internal Error handling POST /v1/plan: {e}\n")
+            traceback.print_exc(file=sys.stderr)
             self.send_response(500)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
