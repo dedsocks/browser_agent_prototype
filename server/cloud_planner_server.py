@@ -35,8 +35,7 @@ def load_dotenv():
                         k, v = line.split("=", 1)
                         k = k.strip()
                         v = v.strip().strip("'").strip('"')
-                        if k not in os.environ:
-                            os.environ[k] = v
+                        os.environ[k] = v
             break
 
 load_dotenv()
