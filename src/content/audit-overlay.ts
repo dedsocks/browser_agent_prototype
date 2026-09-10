@@ -50,14 +50,26 @@ export class AuditOverlayManager {
   public renderMarkersImmediate(markers: AuditOverlayMarker[]): void {
     const container = this.ensureContainer();
 
-    let html = "";
+    const fragment = document.createDocumentFragment();
     for (const marker of markers) {
       const w = Math.max(marker.bounds.width, 10);
       const h = Math.max(marker.bounds.height, 10);
-      html += `<div class="privacy-overlay-marker" style="position:absolute;left:${marker.bounds.x}px;top:${marker.bounds.y}px;width:${w}px;height:${h}px;border:2px solid ${marker.color};background-color:${marker.color}22;box-sizing:border-box;border-radius:3px;pointer-events:none;"><span class="privacy-overlay-badge" style="position:absolute;top:-18px;left:-2px;background-color:${marker.color};color:#FFFFFF;font-size:10px;font-weight:bold;padding:1px 4px;border-radius:2px;white-space:nowrap;pointer-events:none;">${marker.label}</span></div>`;
+      
+      const el = document.createElement("div");
+      el.className = "privacy-overlay-marker";
+      el.style.cssText = `position:absolute;left:${marker.bounds.x}px;top:${marker.bounds.y}px;width:${w}px;height:${h}px;border:2px solid ${marker.color};background-color:${marker.color}22;box-sizing:border-box;border-radius:3px;pointer-events:none;`;
+      
+      const badge = document.createElement("span");
+      badge.className = "privacy-overlay-badge";
+      badge.style.cssText = `position:absolute;top:-18px;left:-2px;background-color:${marker.color};color:#FFFFFF;font-size:10px;font-weight:bold;padding:1px 4px;border-radius:2px;white-space:nowrap;pointer-events:none;`;
+      badge.textContent = marker.label;
+      
+      el.appendChild(badge);
+      fragment.appendChild(el);
     }
 
-    container.innerHTML = html;
+    container.textContent = "";
+    container.appendChild(fragment);
     this.lastRenderTimestamp = Date.now();
   }
 

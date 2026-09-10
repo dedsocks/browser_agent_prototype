@@ -60,8 +60,8 @@ describe("Real-Time Non-Destructive Audit Overlay", () => {
       label: "Protected: Identity"
     }));
 
-    // Warm up JSDOM parser
-    overlayManager.renderMarkersImmediate([bulkMarkers[0]]);
+    // Warm up JSDOM parser and V8 JIT
+    overlayManager.renderMarkersImmediate(bulkMarkers);
 
     const start = performance.now();
     overlayManager.renderMarkersImmediate(bulkMarkers);
