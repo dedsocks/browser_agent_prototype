@@ -15,7 +15,8 @@ export enum SemanticToken {
   FINANCIAL = "<REDACTED_FINANCIAL>",
   IDENTITY = "<REDACTED_IDENTITY>",
   CONTACT = "<REDACTED_CONTACT>",
-  CREDENTIAL = "<REDACTED_CREDENTIAL>"
+  CREDENTIAL = "<REDACTED_CREDENTIAL>",
+  BIOMETRIC_VISUAL = "<REDACTED_BIOMETRIC_VISUAL>"
 }
 
 export interface BoundingBox {
@@ -120,6 +121,7 @@ export interface DomSnapshotNode {
 export interface DomSnapshot {
   root_node_id: string;
   nodes: DomSnapshotNode[];
+  url?: string;
 }
 
 export interface ProcessDomSnapshotRequest {

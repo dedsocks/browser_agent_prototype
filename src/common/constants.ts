@@ -2,11 +2,12 @@ import { RedactionCategory, SemanticToken } from "./types.js";
 
 export const SCHEMA_VERSION = "1.5.0" as const;
 
-export const CATEGORY_TOKEN_MAP: Record<Exclude<RedactionCategory, RedactionCategory.BIOMETRIC_VISUAL>, SemanticToken> = {
+export const CATEGORY_TOKEN_MAP: Record<RedactionCategory, SemanticToken> = {
   [RedactionCategory.FINANCIAL]: SemanticToken.FINANCIAL,
   [RedactionCategory.IDENTITY]: SemanticToken.IDENTITY,
   [RedactionCategory.CONTACT]: SemanticToken.CONTACT,
-  [RedactionCategory.CREDENTIAL]: SemanticToken.CREDENTIAL
+  [RedactionCategory.CREDENTIAL]: SemanticToken.CREDENTIAL,
+  [RedactionCategory.BIOMETRIC_VISUAL]: SemanticToken.BIOMETRIC_VISUAL
 };
 
 export const CATEGORY_COLOR_MAP: Record<RedactionCategory, string> = {

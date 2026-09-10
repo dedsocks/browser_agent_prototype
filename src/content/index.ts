@@ -12,6 +12,7 @@ import {
   DomSanitizationSuccessResponse,
   DomSanitizationFailureResponse
 } from "../common/types.js";
+import { scanFacesOnPage } from "./face-scanner.js";
 
 declare const chrome: any;
 
@@ -29,12 +30,21 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
   });
 }
 
-function applyResponse(response: DomSanitizationSuccessResponse | DomSanitizationFailureResponse) {
+async function applyResponse(response: DomSanitizationSuccessResponse | DomSanitizationFailureResponse) {
   if (!response) return;
 
   if (response.type === "DOM_SANITIZATION_SUCCESS") {
     if (piiBoxesVisible) {
-      auditOverlayManager.renderMarkersImmediate(response.overlay_markers);
+      let markers = [...response.overlay_markers];
+      try {
+        const faceMarkers = await scanFacesOnPage();
+        if (faceMarkers.length > 0) {
+          markers = [...markers, ...faceMarkers];
+        }
+      } catch (err) {
+        console.warn("[Privacy Boundary] Face scanning error:", err);
+      }
+      auditOverlayManager.renderMarkersImmediate(markers);
     } else {
       auditOverlayManager.clear();
     }
@@ -128,6 +138,8 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   window.addEventListener("scroll", scheduleUpdate, { passive: true });
   window.addEventListener("popstate", scheduleUpdate, { passive: true });
   window.addEventListener("hashchange", scheduleUpdate, { passive: true });
+  // Re-scan when dynamically loaded images or avatars finish loading
+  window.addEventListener("load", scheduleUpdate, { capture: true, passive: true });
 
   // Observe dynamic DOM changes (e.g. login dialogs, modal forms, SPA routing)
   if (typeof MutationObserver !== "undefined") {
@@ -154,10 +166,19 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       (msg: any, _sender: any, sendResponse: (response?: any) => void) => {
         if (msg?.type === "TRIGGER_PERCEPTION_CYCLE" && msg.cycle_id) {
           const snapshot = extractDomSnapshot(document.body);
-          triggerPerceptionPass(msg.cycle_id).then(() => {
-            sendResponse({ status: "ACK", dom_snapshot: snapshot });
+          // Fire perception pass as a non-blocking side-effect (overlay rendering).
+          // Do NOT await it — triggerPerceptionPass sends PROCESS_DOM_SNAPSHOT back
+          // to the background, which would deadlock if the background is already
+          // waiting for this response.
+          triggerPerceptionPass(msg.cycle_id).catch(() => {});
+          sendResponse({
+            status: "ACK",
+            dom_snapshot: {
+              ...snapshot,
+              url: typeof window !== "undefined" ? window.location.href : undefined
+            }
           });
-          return true;
+          return false;
         }
         if (msg?.type === "CLEAR_OVERLAYS") {
           auditOverlayManager.clear();
