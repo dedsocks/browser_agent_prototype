@@ -163,7 +163,7 @@ Determine the single next action. Return strictly JSON adhering to the schema.
                 data=req_data,
                 headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=45) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
                 candidates = res_data.get("candidates", [])
                 if not candidates:
@@ -187,6 +187,15 @@ Determine the single next action. Return strictly JSON adhering to the schema.
                 continue
             sys.stderr.write(f"[CloudPlannerServer] Gemini HTTP Error {he.code}: {err_body}\n")
             raise RuntimeError(f"Gemini API returned HTTP {he.code}: {err_body}") from he
+        except (TimeoutError, urllib.error.URLError) as te:
+            if attempt < max_retries:
+                wait = 2 ** (attempt + 1)
+                sys.stderr.write(f"[CloudPlannerServer] Gemini Network/Timeout error ({te}), retrying in {wait}s (attempt {attempt + 1}/{max_retries + 1})...\n")
+                time.sleep(wait)
+                last_error = te
+                continue
+            sys.stderr.write(f"[CloudPlannerServer] Gemini reasoning timeout/network error: {te}\n")
+            raise
         except Exception as e:
             sys.stderr.write(f"[CloudPlannerServer] Gemini reasoning error: {e}\n")
             raise
