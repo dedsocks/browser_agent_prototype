@@ -30,7 +30,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["demo.html", "vault.html", "dist/*"],
+      "resources": ["demo.html", "vault.html", "offscreen.html", "dist/*", "dist/wasm/*", "dist/models/*"],
       "matches": ["<all_urls>"]
     }
   ],

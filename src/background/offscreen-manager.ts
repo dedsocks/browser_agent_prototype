@@ -6,7 +6,7 @@
  * and Principle IV (Background Execution Isolation).
  */
 
-import { BoundingBox, SimpleBounds } from "../common/types.js";
+import { BoundingBox, SimpleBounds, VisionTier } from "../common/types.js";
 
 declare const chrome: any;
 
@@ -22,7 +22,7 @@ export class OffscreenManager {
   /**
    * Ensures an offscreen document is active for heavy visual compute (Chromium MV3).
    */
-  async ensureOffscreenDocument(path = "src/offscreen/index.html"): Promise<boolean> {
+  async ensureOffscreenDocument(path = "offscreen.html"): Promise<boolean> {
     if (typeof chrome === "undefined" || !chrome.offscreen) {
       // Running in Firefox or testing environment: graceful fallback to background script
       return false;
@@ -57,6 +57,67 @@ export class OffscreenManager {
       this.isOffscreenCreated = true;
       return true;
     }
+  }
+
+  /**
+   * Requests face detection from the offscreen document.
+   */
+  async requestFaceDetection(imageData: ImageData, tier: VisionTier = VisionTier.TIER_1_WEBGPU): Promise<SimpleBounds[]> {
+    if (!await this.ensureOffscreenDocument()) {
+      throw new Error("Failed to create offscreen document for face detection");
+    }
+
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(
+        {
+          type: "DETECT_FACES",
+          payload: {
+            width: imageData.width,
+            height: imageData.height,
+            data: Array.from(imageData.data),
+            tier
+          }
+        },
+        (response: any) => {
+          if (chrome.runtime.lastError) {
+            return reject(new Error(chrome.runtime.lastError.message));
+          }
+          if (!response || !response.success) {
+            return reject(new Error(response?.error || "Face detection failed"));
+          }
+          resolve(response.bounds);
+        }
+      );
+    });
+  }
+
+  /**
+   * Requests face detection across an array of webpage image elements.
+   */
+  async requestFaceDetectionForImages(
+    images: Array<{ nodeId: string; src: string; bounds: SimpleBounds }>,
+    tier: VisionTier = VisionTier.TIER_1_WEBGPU
+  ): Promise<Array<{ nodeId: string; faceBounds: SimpleBounds[] }>> {
+    if (images.length === 0) return [];
+    if (!await this.ensureOffscreenDocument()) {
+      return [];
+    }
+
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        {
+          type: "DETECT_PAGE_FACES",
+          payload: { images, tier }
+        },
+        (response: any) => {
+          if (chrome.runtime.lastError || !response?.success) {
+            resolve([]);
+            return;
+          }
+          resolve(response.results || []);
+        }
+      );
+    });
   }
 
   /**

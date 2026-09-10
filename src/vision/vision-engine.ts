@@ -31,8 +31,12 @@ export class WebGpuComputeProvider implements IVisionComputeProvider {
     if (!this.isAvailable()) {
       throw new Error("WebGPU is not supported on this device");
     }
-    // WebGPU compute pass placeholder for local visual feature detection
-    return [];
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return [];
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return offscreenManager.requestFaceDetection(imageData, VisionTier.TIER_1_WEBGPU);
   }
 }
 
@@ -48,7 +52,12 @@ export class WasmComputeProvider implements IVisionComputeProvider {
     if (!this.isAvailable()) {
       throw new Error("WebAssembly runtime is not available");
     }
-    return [];
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return [];
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return offscreenManager.requestFaceDetection(imageData, VisionTier.TIER_2_WASM_CPU);
   }
 }
 

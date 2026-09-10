@@ -4,7 +4,8 @@
   "description": "Browser agent prototype with client-side PII redaction pipeline",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && esbuild src/background/index.ts --bundle --target=es2022 --outfile=dist/background.bundle.js && esbuild src/content/index.ts --bundle --target=es2022 --outfile=dist/content.bundle.js && esbuild src/popup/index.ts --bundle --target=es2022 --outfile=dist/popup.bundle.js && esbuild src/vault/index.ts --bundle --target=es2022 --outfile=dist/vault.bundle.js",
+    "build": "tsc --noEmit && esbuild src/background/index.ts --bundle --target=es2022 --outfile=dist/background.bundle.js && esbuild src/content/index.ts --bundle --target=es2022 --outfile=dist/content.bundle.js && esbuild src/popup/index.ts --bundle --target=es2022 --outfile=dist/popup.bundle.js && esbuild src/vault/index.ts --bundle --target=es2022 --outfile=dist/vault.bundle.js && esbuild src/offscreen/index.ts --bundle --target=es2022 --outfile=dist/offscreen.bundle.js",
+    "postbuild": "mkdir -p dist/wasm && cp node_modules/@mediapipe/tasks-vision/wasm/* dist/wasm/ 2>/dev/null || true",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -15,5 +16,8 @@
     "jsdom": "^24.0.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1"
   }
 }
