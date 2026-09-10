@@ -64,4 +64,30 @@ describe("Real-World Forms & Empty Credential Detection", () => {
     expect(categories).toContain(RedactionCategory.CREDENTIAL); // OTP & API Key
     expect(categories).toContain(RedactionCategory.FINANCIAL);  // CC number
   });
+
+  it("sanitizes real-world pages containing base64 images, icons, and data URLs without triggering unmasked binary buffer errors", async () => {
+    document.body.innerHTML = `
+      <div id="app">
+        <header>
+          <img id="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==" alt="Company Logo" />
+          <div style="background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')">Header</div>
+        </header>
+        <form id="signup">
+          <input id="name" name="name" type="text" value="Alice" />
+          <input id="email" name="email" type="email" value="alice@example.com" />
+        </form>
+      </div>
+    `;
+
+    const snapshot = extractDomSnapshot(document.body);
+    const response = await handleDomSnapshotRequest({
+      type: "PROCESS_DOM_SNAPSHOT",
+      cycle_id: "test-base64-images-real-world",
+      url: "https://example.com/signup",
+      timestamp: Date.now(),
+      dom_snapshot: snapshot
+    });
+
+    expect(response.type).toBe("DOM_SANITIZATION_SUCCESS");
+  });
 });

@@ -5,6 +5,7 @@
  */
 
 import { DomSnapshotNode, SimpleBounds } from "../common/types.js";
+import { maskBinaryBuffers } from "../privacy/tokenizer.js";
 
 /**
  * Recursively extracts snapshot nodes from an attached ShadowRoot.
@@ -29,16 +30,16 @@ export function extractShadowSubtree(
     const attributes: Record<string, string> = {};
     if (element.hasAttributes && element.hasAttributes()) {
       for (const attr of Array.from(element.attributes)) {
-        attributes[attr.name] = attr.value;
+        attributes[maskBinaryBuffers(attr.name)] = maskBinaryBuffers(attr.value);
       }
     }
 
     const text = element.childNodes.length === 1 && element.childNodes[0].nodeType === Node.TEXT_NODE
-      ? (element.textContent || "").trim()
+      ? maskBinaryBuffers((element.textContent || "").trim())
       : undefined;
 
-    const value = (element as HTMLInputElement).value;
-    const placeholder = (element as HTMLInputElement).placeholder;
+    const value = (element as HTMLInputElement).value ? maskBinaryBuffers((element as HTMLInputElement).value) : undefined;
+    const placeholder = (element as HTMLInputElement).placeholder ? maskBinaryBuffers((element as HTMLInputElement).placeholder) : undefined;
 
     const node: DomSnapshotNode = {
       node_id: nodeId,

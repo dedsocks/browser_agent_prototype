@@ -6,6 +6,7 @@
 
 import { DomSnapshot, DomSnapshotNode, SanitizedDomNode, SimpleBounds } from "../common/types.js";
 import { extractShadowSubtree } from "./shadow-dom-extractor.js";
+import { maskBinaryBuffers } from "../privacy/tokenizer.js";
 
 let nodeIdCounter = 0;
 
@@ -66,7 +67,7 @@ export function extractDomSnapshot(root: Element = document.body): DomSnapshot {
     for (let i = 0; i < el.attributes.length; i++) {
       const attr = el.attributes[i];
       if (attr.name !== "data-priv-node-id") {
-        attributes[attr.name] = attr.value;
+        attributes[maskBinaryBuffers(attr.name)] = maskBinaryBuffers(attr.value);
       }
     }
 
@@ -74,15 +75,15 @@ export function extractDomSnapshot(root: Element = document.body): DomSnapshot {
     let placeholder: string | undefined;
 
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-      value = el.value;
-      placeholder = el.placeholder;
+      value = el.value ? maskBinaryBuffers(el.value) : el.value;
+      placeholder = el.placeholder ? maskBinaryBuffers(el.placeholder) : el.placeholder;
     }
 
     // Direct text content (excluding nested element text to avoid duplication)
     let directText: string | undefined;
     if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
       const trimmed = el.textContent?.trim();
-      if (trimmed) directText = trimmed;
+      if (trimmed) directText = maskBinaryBuffers(trimmed);
     }
 
     const childElementIds: string[] = [];

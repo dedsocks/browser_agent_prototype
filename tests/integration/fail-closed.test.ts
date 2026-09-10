@@ -82,6 +82,22 @@ describe("Fail-Closed Protocol & Pre-Transmission Verification", () => {
     expect(result.errorCode).toBe("INVALID_SCHEMA");
   });
 
+  it("fails verification when unmasked image/pixel buffer data URL leaks into tree", () => {
+    const rawImageEnvelope: SanitizedPayloadEnvelope = {
+      ...validEnvelope,
+      sanitized_dom_tree: {
+        ...validEnvelope.sanitized_dom_tree,
+        attributes: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" }
+      }
+    };
+
+    const result = verifyPreTransmission(rawImageEnvelope, validManifest);
+    expect(result.valid).toBe(false);
+    expect(result.errorCode).toBe("BINARY_DATA_DETECTED");
+    expect(result.diagnosticMessage).toBe("Unmasked image/pixel buffer detected in serialized tree");
+    expect(result.manifest.verificationStatus).toBe("FAILED");
+  });
+
   it("blocks network transmission and emits PRIVACY_ABORT upon verification failure", async () => {
     const abortListener = vi.fn((_event: PrivacyAbortEvent) => {});
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
