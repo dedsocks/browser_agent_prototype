@@ -326,8 +326,8 @@ export class AgentController {
       if (outcome.isTerminal) {
         return outcome;
       }
-      // Pause between actions to allow real-world DOM updates to settle
-      await new Promise(r => setTimeout(r, 1000));
+      // Brief pause between actions to allow real-world DOM updates to settle
+      await new Promise(r => setTimeout(r, 250));
     }
     return { success: true, isTerminal: true };
   }

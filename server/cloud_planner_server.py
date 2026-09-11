@@ -118,11 +118,53 @@ def normalize_planner_response(parsed: dict, cycle_id: str) -> dict:
             parsed["action"]["id"] = f"act_{int(time.time() * 1000)}"
     return parsed
 
+def prune_dom_tree(node: dict) -> dict:
+    """Recursively prunes empty non-interactive containers to reduce token count and latency."""
+    if not isinstance(node, dict):
+        return {}
+
+    interactive_tags = {"a", "button", "input", "textarea", "select", "option", "form", "dialog", "h1", "h2", "h3", "h4", "h5", "h6"}
+    tag = node.get("tag", "").lower()
+    text = (node.get("text") or "").strip()
+    role = node.get("role")
+    attrs = node.get("attributes") or {}
+    has_meaningful_attrs = any(k in attrs for k in ("id", "name", "type", "href", "placeholder", "aria-label", "value"))
+
+    pruned_children = []
+    for c in node.get("children", []):
+        p = prune_dom_tree(c)
+        if p:
+            pruned_children.append(p)
+
+    is_leaf_container = not text and not pruned_children and not has_meaningful_attrs
+    if is_leaf_container and tag not in interactive_tags:
+        return {}
+
+    clean_node = {
+        "node_id": node.get("node_id"),
+        "tag": tag,
+    }
+    if role:
+        clean_node["role"] = role
+    if text:
+        clean_node["text"] = text[:150]
+    if attrs:
+        filtered_attrs = {k: v for k, v in attrs.items() if k in ("id", "name", "type", "href", "placeholder", "aria-label", "value", "title", "role")}
+        if filtered_attrs:
+            clean_node["attributes"] = filtered_attrs
+    if pruned_children:
+        clean_node["children"] = pruned_children
+
+    return clean_node
+
 def call_gemini(request_payload: dict) -> dict:
     """Invokes Google Gemini API with structured thinking instructions and retry logic."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
     
     cycle_id = request_payload.get("cycle_id", "cycle_0")
+    raw_dom = request_payload.get("sanitized_payload", {}).get("sanitized_dom_tree", {})
+    optimized_dom = prune_dom_tree(raw_dom)
+
     user_prompt = f"""
 Current Perception-Action Cycle:
 Session ID: {request_payload.get('session_id')}
@@ -133,7 +175,7 @@ Active URL: {request_payload.get('active_url', 'N/A')}
 Active Token Manifest: {json.dumps(request_payload.get('token_manifest', []))}
 
 Sanitized DOM Tree:
-{json.dumps(request_payload.get('sanitized_payload', {}).get('sanitized_dom_tree', {}), indent=2)}
+{json.dumps(optimized_dom, indent=2)}
 
 Determine the single next action. Return strictly JSON adhering to the schema.
 """
@@ -206,6 +248,8 @@ def call_openai_compatible(request_payload: dict) -> dict:
     """Invokes OpenAI-compatible endpoint (OpenAI, Claude proxy, DeepSeek, Ollama)."""
     url = f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
     cycle_id = request_payload.get("cycle_id", "cycle_0")
+    raw_dom = request_payload.get("sanitized_payload", {}).get("sanitized_dom_tree", {})
+    optimized_dom = prune_dom_tree(raw_dom)
     
     user_prompt = f"""
 Current Perception-Action Cycle:
@@ -217,7 +261,7 @@ Active URL: {request_payload.get('active_url', 'N/A')}
 Active Token Manifest: {json.dumps(request_payload.get('token_manifest', []))}
 
 Sanitized DOM Tree:
-{json.dumps(request_payload.get('sanitized_payload', {}).get('sanitized_dom_tree', {}), indent=2)}
+{json.dumps(optimized_dom, indent=2)}
 
 Determine the single next action. Return strictly JSON.
 """

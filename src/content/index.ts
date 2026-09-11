@@ -35,16 +35,20 @@ async function applyResponse(response: DomSanitizationSuccessResponse | DomSanit
 
   if (response.type === "DOM_SANITIZATION_SUCCESS") {
     if (piiBoxesVisible) {
-      let markers = [...response.overlay_markers];
-      try {
-        const faceMarkers = await scanFacesOnPage();
-        if (faceMarkers.length > 0) {
-          markers = [...markers, ...faceMarkers];
+      // 1. Render PII markers immediately to guarantee <50ms paint latency budget
+      auditOverlayManager.renderMarkersImmediate(response.overlay_markers);
+
+      // 2. Scan faces asynchronously without blocking UI or perception loop
+      scanFacesOnPage().then((faceMarkers) => {
+        if (faceMarkers.length > 0 && piiBoxesVisible) {
+          auditOverlayManager.renderMarkersImmediate([
+            ...response.overlay_markers,
+            ...faceMarkers
+          ]);
         }
-      } catch (err) {
+      }).catch((err) => {
         console.warn("[Privacy Boundary] Face scanning error:", err);
-      }
-      auditOverlayManager.renderMarkersImmediate(markers);
+      });
     } else {
       auditOverlayManager.clear();
     }
