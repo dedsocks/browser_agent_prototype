@@ -79,11 +79,34 @@ Guidelines for real-world sites:
 - Form inputs: If user specified names/emails in their prompt, use them. Otherwise, provide realistic user test values (e.g. "Alex Morgan", "alex.morgan@example.com").
 - Password fields: For any password or credential field, target the field with "type" and value "<USER_PASSWORD_PLACEHOLDER>". The client-side ActionValidator will automatically halt and prompt the human user to enter their secret securely.
 - Submissions & Buttons: Once required form fields are populated, click the submit, sign up, or continue button.
-- Selectors: Prefer clean, unambiguous selectors: ID (e.g. #name), name (e.g. input[name="email"]), type (e.g. button[type="submit"]), or text-matching classes.
+- Target Selection (CRITICAL):
+  * nodeId: MUST strictly match an actual "node_id" present in the Sanitized DOM Tree above. DO NOT invent or guess node IDs.
+  * expectedText: ALWAYS provide "expectedText" with the exact or partial visible text, aria-label, title, or alt text of the element (e.g. "Sign in with Google", "Google", or "Blank document").
+  * coordinates (x, y): For click actions, ALWAYS include "x" and "y" matching the "cx" and "cy" properties provided on the target DOM node.
+  * cssSelector: DO NOT hallucinate complex CSS classes (like "a.google.auth-link"). If you are not completely sure of an exact HTML id or name attribute, omit cssSelector or provide a simple generic selector like "button", "a", or "[role='button']".
+
+Canvas-based editors (CRITICAL - Google Docs, Sheets, Slides, Figma, Excalidraw, etc.):
+- These apps render their editor inside a <canvas> element, NOT a standard <input> or <textarea>.
+- You will see a "canvas" node in the DOM tree — this is the editor surface.
+- Standard "type" actions DO NOT work on canvas editors. You MUST use "key_sequence" instead.
+- The correct two-step pattern for typing in Google Docs (or any canvas editor):
+  Step 1: "click" the canvas element to give it keyboard focus.
+  Step 2: "key_sequence" with the text to type in the "value" field.
+- For pressing special keys (Enter for new paragraph, Tab for indent, etc.), use the "keys" array with named keys:
+  ["Enter"], ["Tab"], ["Backspace"], ["ArrowLeft"], ["ArrowRight"], ["ArrowUp"], ["ArrowDown"],
+  ["Home"], ["End"], ["PageUp"], ["PageDown"], ["Control+a"], ["Control+c"], ["Control+v"], ["Control+z"]
+- If you need to type text AND press Enter, use two separate actions (one key_sequence for text, one for Enter).
 
 Permitted action types:
-- "click": Click an interactive element (button, link, checkbox, radio).
-- "type": Enter text into an input or textarea.
+- "click": Click an interactive element (button, link, checkbox, radio, or canvas editor surface).
+  IMPORTANT: Always include x and y (from the element's cx and cy fields in the DOM tree) in the
+  target, so the browser can dispatch mouse events at the exact visual position:
+  "target": { "nodeId": "...", "expectedText": "...", "x": <cx value>, "y": <cy value> }
+  This is REQUIRED for Google Docs, Google Drive, and any app that uses mouse coordinates.
+- "type": Enter text into a standard HTML input or textarea element.
+- "key_sequence": Dispatch real keyboard events (keydown/keypress/keyup) on the focused element.
+  Use this for canvas-based editors (Google Docs, Sheets, Slides, Figma) and any app that listens
+  to keyboard events rather than input value changes.
 - "scroll": Scroll the page viewport if required to reveal elements.
 - "navigate": Navigate to a specific URL if starting a fresh task.
 
@@ -95,12 +118,16 @@ You MUST respond strictly in valid JSON matching this schema:
   "result_summary": "<optional summary if is_terminal is true>",
   "action": {
     "id": "act_<timestamp>",
-    "type": "click" | "type" | "scroll" | "navigate",
+    "type": "click" | "type" | "key_sequence" | "scroll" | "navigate",
     "target": {
-      "cssSelector": "<precise CSS selector for the target element>",
-      "nodeId": "<node_id from the DOM tree if available>"
+      "nodeId": "<node_id from the DOM tree if available>",
+      "expectedText": "<visible text, aria-label, or title of the element, e.g. 'Sign in with Google' or 'Blank document'>",
+      "cssSelector": "<simple CSS selector if known, e.g. button or #id, or omit>",
+      "x": <cx value from DOM node — center x coordinate in viewport pixels>,
+      "y": <cy value from DOM node — center y coordinate in viewport pixels>
     },
-    "value": "<text to type, if type action>"
+    "value": "<text to type (for 'type' action) or text to keyboard-input (for 'key_sequence' action)>",
+    "keys": ["<optional array of named special keys for key_sequence, e.g. ['Enter'] or ['Control+a']>"]
   }
 }
 Output only the JSON object, without markdown code fences or conversational prose.
@@ -114,8 +141,17 @@ def normalize_planner_response(parsed: dict, cycle_id: str) -> dict:
     if "thought" not in parsed:
         parsed["thought"] = "Action evaluated by reasoning model"
     if "action" in parsed and isinstance(parsed["action"], dict):
-        if "id" not in parsed["action"]:
-            parsed["action"]["id"] = f"act_{int(time.time() * 1000)}"
+        act = parsed["action"]
+        if "id" not in act:
+            act["id"] = f"act_{int(time.time() * 1000)}"
+        target = act.get("target")
+        if isinstance(target, dict):
+            if "node_id" in target and "nodeId" not in target:
+                target["nodeId"] = target["node_id"]
+            if "expected_text" in target and "expectedText" not in target:
+                target["expectedText"] = target["expected_text"]
+            if "css_selector" in target and "cssSelector" not in target:
+                target["cssSelector"] = target["css_selector"]
     return parsed
 
 def prune_dom_tree(node: dict) -> dict:
@@ -123,12 +159,18 @@ def prune_dom_tree(node: dict) -> dict:
     if not isinstance(node, dict):
         return {}
 
-    interactive_tags = {"a", "button", "input", "textarea", "select", "option", "form", "dialog", "h1", "h2", "h3", "h4", "h5", "h6"}
+    interactive_tags = {"a", "button", "input", "textarea", "select", "option", "form", "dialog",
+                        "h1", "h2", "h3", "h4", "h5", "h6",
+                        # Canvas-based editors (Google Docs, Sheets, Slides) and rich-text surfaces
+                        "canvas"}
     tag = node.get("tag", "").lower()
     text = (node.get("text") or "").strip()
     role = node.get("role")
     attrs = node.get("attributes") or {}
     has_meaningful_attrs = any(k in attrs for k in ("id", "name", "type", "href", "placeholder", "aria-label", "value"))
+
+    # Preserve contenteditable divs (rich-text editors, Notion, Coda, etc.)
+    is_contenteditable = attrs.get("contenteditable") in ("true", "")
 
     pruned_children = []
     for c in node.get("children", []):
@@ -136,7 +178,7 @@ def prune_dom_tree(node: dict) -> dict:
         if p:
             pruned_children.append(p)
 
-    is_leaf_container = not text and not pruned_children and not has_meaningful_attrs
+    is_leaf_container = not text and not pruned_children and not has_meaningful_attrs and not is_contenteditable
     if is_leaf_container and tag not in interactive_tags:
         return {}
 
@@ -149,9 +191,21 @@ def prune_dom_tree(node: dict) -> dict:
     if text:
         clean_node["text"] = text[:150]
     if attrs:
-        filtered_attrs = {k: v for k, v in attrs.items() if k in ("id", "name", "type", "href", "placeholder", "aria-label", "value", "title", "role")}
+        filtered_attrs = {k: v for k, v in attrs.items() if k in ("id", "name", "type", "href", "placeholder", "aria-label", "value", "title", "role", "contenteditable")}
         if filtered_attrs:
             clean_node["attributes"] = filtered_attrs
+    # Include bounding box so the planner can compute click coordinates.
+    # cx/cy are the element center in viewport pixels — always use these in click targets.
+    bounds = node.get("bounds")
+    if bounds and isinstance(bounds, dict):
+        w = bounds.get("width", 0)
+        h = bounds.get("height", 0)
+        x = bounds.get("x", 0)
+        y = bounds.get("y", 0)
+        if w > 0 and h > 0:
+            clean_node["bounds"] = {"x": x, "y": y, "width": w, "height": h}
+            clean_node["cx"] = round(x + w / 2)
+            clean_node["cy"] = round(y + h / 2)
     if pruned_children:
         clean_node["children"] = pruned_children
 
