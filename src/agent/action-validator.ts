@@ -48,6 +48,23 @@ export class ActionValidator {
       return { isValid: true };
     }
 
+    // key_sequence fires KeyboardEvents on document / focused element — target is optional
+    if (action.type === "key_sequence") {
+      if (!action.value && (!action.keys || action.keys.length === 0)) {
+        return {
+          isValid: false,
+          errorCode: "VALIDATION_FAULT",
+          diagnosticMessage: "key_sequence action must provide either 'value' text or 'keys' array"
+        };
+      }
+      // If a target is given, validate it exists & is visible (non-blocking for canvas)
+      if (action.target && targetInfo && !targetInfo.found) {
+        // Log but don't fail — we'll still fire events on document
+        console.warn("[ActionValidator] key_sequence: target not found, will fire on document");
+      }
+      return { isValid: true };
+    }
+
     // For click and type, target validation is mandatory
     if (!action.target) {
       return {
@@ -58,6 +75,11 @@ export class ActionValidator {
     }
 
     if (!targetInfo || !targetInfo.found) {
+      // If action is a click with explicit viewport coordinates, allow coordinate-based click dispatch
+      // (crucial for canvas editors, iframes, and visual elements that cannot be isolated in DOM)
+      if (action.type === "click" && action.target?.x !== undefined && action.target?.y !== undefined) {
+        return { isValid: true };
+      }
       return {
         isValid: false,
         errorCode: "TARGET_NOT_FOUND",

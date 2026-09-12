@@ -173,7 +173,7 @@ export enum TaskState {
   FAILED = "FAILED"
 }
 
-export type ActionType = "click" | "type" | "scroll" | "navigate";
+export type ActionType = "click" | "type" | "scroll" | "navigate" | "key_sequence";
 
 export interface TargetSelector {
   nodeId?: string;
@@ -181,6 +181,12 @@ export interface TargetSelector {
   xpath?: string;
   expectedText?: string;
   expectedBounds?: SimpleBounds;
+  /** Absolute viewport coordinates (px) for coordinate-based clicking.
+   *  When set, mouse events are dispatched with these clientX/clientY values.
+   *  Required for canvas-based apps (Google Docs, Sheets, Figma) that use
+   *  event coordinates rather than DOM event targets to handle clicks. */
+  x?: number;
+  y?: number;
 }
 
 export interface AgentAction {
@@ -189,6 +195,8 @@ export interface AgentAction {
   target?: TargetSelector;
   value?: string;
   scrollOffset?: { x: number; y: number };
+  /** Individual key names for key_sequence action (e.g. ["Enter", "Tab", "Backspace"]). If omitted, characters from `value` are used. */
+  keys?: string[];
   thought?: string;
 }
 

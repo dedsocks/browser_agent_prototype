@@ -15,6 +15,17 @@ export interface DomExecutionResult {
   durationMs: number;
 }
 
+/**
+ * Resolves a DOM element by nodeId, checking both the real `id` attribute
+ * and the `data-priv-node-id` attribute stamped by dom-extractor for generated IDs.
+ */
+function getElementByNodeId(nodeId: string): HTMLElement | null {
+  return (
+    document.getElementById(nodeId) ||
+    (document.querySelector(`[data-priv-node-id="${nodeId}"]`) as HTMLElement | null)
+  );
+}
+
 function showActionToast(message: string) {
   if (typeof document === "undefined") return;
   let toast = document.getElementById("__agent_action_toast");
@@ -84,22 +95,62 @@ export async function executeDomAction(
   try {
     switch (action.type) {
       case "click": {
+        // Determine the click coordinates.
+        // Priority: explicit x/y from action → computed element center → (0,0) fallback
+        let clickX = action.target?.x;
+        let clickY = action.target?.y;
+
         let el: HTMLElement | null = null;
-        if (action.target?.nodeId) {
-          el = document.getElementById(action.target.nodeId);
-        }
-        if (!el && action.target?.cssSelector) {
-          el = document.querySelector(action.target.cssSelector) as HTMLElement;
+
+        // Strategy 1: Coordinate-based resolution via elementFromPoint.
+        // Only used when the planner explicitly provided x/y coordinates (not computed from bounds).
+        // This is the MOST RELIABLE method for canvas-based apps (Google Docs, Sheets, Drive)
+        // because it hits the exact visual element, bypassing DOM structure assumptions.
+        // We skip body/html hits — those indicate JSDOM or a miss, not a real element.
+        if (clickX !== undefined && clickY !== undefined) {
+          const hit = document.elementFromPoint(clickX, clickY) as HTMLElement | null;
+          const hitTag = hit?.tagName?.toLowerCase();
+          if (hit && hitTag !== "body" && hitTag !== "html") {
+            el = hit;
+          }
         }
 
+        // Strategy 2: CSS selector / nodeId fallback
+        if (!el && action.target?.nodeId) {
+          el = getElementByNodeId(action.target.nodeId);
+        }
+        if (!el && action.target?.cssSelector) {
+          try {
+            el = document.querySelector(action.target.cssSelector) as HTMLElement;
+          } catch { /* invalid selector */ }
+        }
+
+        // Strategy 3: resolveTargetElement (text matching, XPath, shadow DOM)
         if (!el && action.target) {
           const res = resolveTargetElement(action.target);
           if (res.found && res.nodeId) {
-            el = document.getElementById(res.nodeId);
+            el = getElementByNodeId(res.nodeId);
           }
         }
 
         if (!el) {
+          // Last resort: if we have coordinates, still try to dispatch events
+          // at those coordinates even without a resolved element
+          if (clickX !== undefined && clickY !== undefined) {
+            showActionToast(`Clicking at (${Math.round(clickX)}, ${Math.round(clickY)})`);
+            const evInit = {
+              bubbles: true, cancelable: true,
+              clientX: clickX, clientY: clickY,
+              screenX: clickX, screenY: clickY,
+              isPrimary: true
+            };
+            if (typeof PointerEvent !== "undefined") {
+              document.dispatchEvent(new PointerEvent("pointerdown", evInit));
+              document.dispatchEvent(new PointerEvent("pointerup", evInit));
+            }
+            document.dispatchEvent(new MouseEvent("click", { ...evInit, detail: 1 }));
+            return { success: true, durationMs: Date.now() - startTime };
+          }
           return {
             success: false,
             error: "Target element could not be resolved on live DOM for click",
@@ -107,21 +158,70 @@ export async function executeDomAction(
           };
         }
 
-        showActionToast(`Clicking ${el.tagName.toLowerCase()}${el.id ? ` #${el.id}` : ""}`);
+        // Compute click coordinates from element if not provided
+        if (clickX === undefined || clickY === undefined) {
+          const rect = el.getBoundingClientRect();
+          clickX = Math.round(rect.left + rect.width / 2);
+          clickY = Math.round(rect.top + rect.height / 2);
+        }
+
+        showActionToast(`Clicking ${el.tagName.toLowerCase()}${el.id ? ` #${el.id}` : ""} at (${Math.round(clickX)}, ${Math.round(clickY)})`);
         flashElement(el);
 
-        // Focus element before click
+        // Full W3C pointer + mouse event sequence with real coordinates.
+        // Google Docs and similar apps dispatch-listen to these events
+        // and use clientX/clientY to determine what was clicked inside the canvas.
+        // Note: view:window is intentionally omitted — JSDOM does not support it
+        // and the real browser infers it automatically.
+        const coordInit: MouseEventInit & PointerEventInit = {
+          bubbles: true,
+          cancelable: true,
+          clientX: clickX,
+          clientY: clickY,
+          screenX: clickX,
+          screenY: clickY,
+          detail: 1,
+          button: 0,
+          buttons: 1,
+          isPrimary: true,
+        };
+
         el.focus();
-        el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-        el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
-        el.click();
+        // Guard PointerEvent dispatches — JSDOM does not implement PointerEvent.
+        // In real Chrome the full sequence is required for Google Docs / Drive.
+        const hasPointerEvent = typeof PointerEvent !== "undefined";
+        if (hasPointerEvent) {
+          el.dispatchEvent(new PointerEvent("pointerover",  { ...coordInit, cancelable: false }));
+          el.dispatchEvent(new PointerEvent("pointerenter", { ...coordInit, bubbles: false, cancelable: false }));
+        }
+        el.dispatchEvent(new MouseEvent("mouseover",  { ...coordInit, cancelable: false }));
+        el.dispatchEvent(new MouseEvent("mouseenter", { ...coordInit, bubbles: false, cancelable: false }));
+        el.dispatchEvent(new MouseEvent("mousemove",  { ...coordInit }));
+        if (hasPointerEvent) {
+          el.dispatchEvent(new PointerEvent("pointerdown", { ...coordInit }));
+        }
+        el.dispatchEvent(new MouseEvent("mousedown", { ...coordInit }));
+        if (hasPointerEvent) {
+          el.dispatchEvent(new PointerEvent("pointerup", { ...coordInit }));
+        }
+        el.dispatchEvent(new MouseEvent("mouseup", { ...coordInit }));
+        el.dispatchEvent(new MouseEvent("click",   { ...coordInit }));
+
+        // Canvas-based editors also need explicit focus events after click
+        if (el.tagName.toLowerCase() === "canvas" ||
+            el.getAttribute("contenteditable") ||
+            el.getAttribute("role") === "textbox") {
+          el.dispatchEvent(new FocusEvent("focus",   { bubbles: false }));
+          el.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+        }
+
         return { success: true, durationMs: Date.now() - startTime };
       }
 
       case "type": {
         let el: HTMLInputElement | HTMLTextAreaElement | null = null;
         if (action.target?.nodeId) {
-          el = document.getElementById(action.target.nodeId) as any;
+          el = getElementByNodeId(action.target.nodeId) as any;
         }
         if (!el && action.target?.cssSelector) {
           el = document.querySelector(action.target.cssSelector) as any;
@@ -130,7 +230,7 @@ export async function executeDomAction(
         if (!el && action.target) {
           const res = resolveTargetElement(action.target);
           if (res.found && res.nodeId) {
-            el = document.getElementById(res.nodeId) as any;
+            el = getElementByNodeId(res.nodeId) as any;
           }
         }
 
@@ -178,6 +278,128 @@ export async function executeDomAction(
           };
         }
         window.location.href = action.value;
+        return { success: true, durationMs: Date.now() - startTime };
+      }
+
+      case "key_sequence": {
+        // Resolve optional focus target (e.g. the Google Docs canvas)
+        let focusTarget: HTMLElement | null = null;
+        if (action.target?.nodeId) {
+          focusTarget = getElementByNodeId(action.target.nodeId);
+        }
+        if (!focusTarget && action.target?.cssSelector) {
+          try {
+            focusTarget = document.querySelector(action.target.cssSelector) as HTMLElement;
+          } catch {}
+        }
+        if (!focusTarget && action.target) {
+          const res = resolveTargetElement(action.target);
+          if (res.found && res.nodeId) {
+            focusTarget = getElementByNodeId(res.nodeId);
+          }
+        }
+
+        if (focusTarget) {
+          flashElement(focusTarget);
+          focusTarget.focus();
+          // Extra events for canvas-based editors
+          if (focusTarget.tagName.toLowerCase() === "canvas") {
+            focusTarget.dispatchEvent(new FocusEvent("focus", { bubbles: false }));
+            focusTarget.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+          }
+        }
+
+        // Build the list of keys to dispatch
+        // action.keys takes priority; otherwise expand each character of action.value
+        const keysToDispatch: string[] = action.keys && action.keys.length > 0
+          ? action.keys
+          : Array.from(action.value || "");
+
+        if (keysToDispatch.length === 0) {
+          return { success: false, error: "key_sequence: no keys or value provided", durationMs: Date.now() - startTime };
+        }
+
+        showActionToast(`Typing ${keysToDispatch.length} key(s) via key_sequence`);
+
+        // Map of special key names to their KeyboardEvent key/code/keyCode values
+        const SPECIAL_KEYS: Record<string, { key: string; code: string; keyCode: number }> = {
+          Enter:       { key: "Enter",      code: "Enter",        keyCode: 13  },
+          Tab:         { key: "Tab",        code: "Tab",          keyCode: 9   },
+          Backspace:   { key: "Backspace",  code: "Backspace",    keyCode: 8   },
+          Delete:      { key: "Delete",     code: "Delete",       keyCode: 46  },
+          Escape:      { key: "Escape",     code: "Escape",       keyCode: 27  },
+          ArrowLeft:   { key: "ArrowLeft",  code: "ArrowLeft",    keyCode: 37  },
+          ArrowRight:  { key: "ArrowRight", code: "ArrowRight",   keyCode: 39  },
+          ArrowUp:     { key: "ArrowUp",    code: "ArrowUp",      keyCode: 38  },
+          ArrowDown:   { key: "ArrowDown",  code: "ArrowDown",    keyCode: 40  },
+          Home:        { key: "Home",       code: "Home",         keyCode: 36  },
+          End:         { key: "End",        code: "End",          keyCode: 35  },
+          PageUp:      { key: "PageUp",     code: "PageUp",       keyCode: 33  },
+          PageDown:    { key: "PageDown",   code: "PageDown",     keyCode: 34  },
+          Space:       { key: " ",          code: "Space",        keyCode: 32  },
+          "Control+a": { key: "a",          code: "KeyA",         keyCode: 65  },
+          "Control+c": { key: "c",          code: "KeyC",         keyCode: 67  },
+          "Control+v": { key: "v",          code: "KeyV",         keyCode: 86  },
+          "Control+z": { key: "z",          code: "KeyZ",         keyCode: 90  },
+        };
+
+        const eventTarget: EventTarget = (document.activeElement as HTMLElement) || document;
+
+        for (const k of keysToDispatch) {
+          const special = SPECIAL_KEYS[k];
+          const isCtrlCombo = k.startsWith("Control+");
+
+          if (special) {
+            const init: KeyboardEventInit = {
+              key: special.key,
+              code: special.code,
+              keyCode: special.keyCode,
+              which: special.keyCode,
+              bubbles: true,
+              cancelable: true,
+              ctrlKey: isCtrlCombo,
+            };
+            eventTarget.dispatchEvent(new KeyboardEvent("keydown", init));
+            eventTarget.dispatchEvent(new KeyboardEvent("keypress", init));
+            eventTarget.dispatchEvent(new KeyboardEvent("keyup", init));
+          } else {
+            // Single printable character
+            const charCode = k.charCodeAt(0);
+            const charInit: KeyboardEventInit = {
+              key: k,
+              code: `Key${k.toUpperCase()}`,
+              keyCode: charCode,
+              which: charCode,
+              charCode,
+              bubbles: true,
+              cancelable: true,
+            };
+            eventTarget.dispatchEvent(new KeyboardEvent("keydown", charInit));
+            eventTarget.dispatchEvent(new KeyboardEvent("keypress", charInit));
+
+            // beforeinput + input InputEvents for canvas-based editors (Google Docs, Sheets)
+            // These editors intercept the InputEvent pipeline to update their internal model.
+            try {
+              (eventTarget as HTMLElement).dispatchEvent?.(new InputEvent("beforeinput", {
+                inputType: "insertText",
+                data: k,
+                bubbles: true,
+                cancelable: true,
+              }));
+              (eventTarget as HTMLElement).dispatchEvent?.(new InputEvent("input", {
+                inputType: "insertText",
+                data: k,
+                bubbles: true,
+              }));
+            } catch { /* element may not support InputEvent */ }
+
+            eventTarget.dispatchEvent(new KeyboardEvent("keyup", charInit));
+          }
+
+          // Small delay between key events to allow the editor's JS handlers to process
+          await new Promise(r => setTimeout(r, 15));
+        }
+
         return { success: true, durationMs: Date.now() - startTime };
       }
 
@@ -244,7 +466,7 @@ export function triggerInterventionUi(context: HumanInterventionContext): void {
 
   // If target field is known, highlight it
   if (context.targetFieldId) {
-    const el = document.getElementById(context.targetFieldId) || (document.querySelector(`[name="${context.targetFieldId}"]`) as HTMLElement | null);
+    const el = getElementByNodeId(context.targetFieldId) || (document.querySelector(`[name="${context.targetFieldId}"]`) as HTMLElement | null);
     if (el) {
       el.style.outline = "3px solid #ea580c";
       el.setAttribute("data-agent-intervention-highlight", "true");

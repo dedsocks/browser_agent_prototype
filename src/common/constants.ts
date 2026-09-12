@@ -72,7 +72,7 @@ export const PERFORMANCE_BUDGETS = {
 };
 
 // Action Allowlist & Execution Safeguards (Constitution Article XIV)
-export const ALLOWED_ACTION_TYPES = ["click", "type", "scroll", "navigate"] as const;
+export const ALLOWED_ACTION_TYPES = ["click", "type", "scroll", "navigate", "key_sequence"] as const;
 
 export const GEOMETRIC_TOLERANCE_RATIO = 0.25; // 25% margin for dynamic element shifts
 

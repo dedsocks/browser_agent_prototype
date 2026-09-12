@@ -79,11 +79,23 @@ export function extractDomSnapshot(root: Element = document.body): DomSnapshot {
       placeholder = el.placeholder ? maskBinaryBuffers(el.placeholder) : el.placeholder;
     }
 
-    // Direct text content (excluding nested element text to avoid duplication)
+    // Direct text content (or aria-label / title / compact leaf text)
     let directText: string | undefined;
     if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
       const trimmed = el.textContent?.trim();
       if (trimmed) directText = maskBinaryBuffers(trimmed);
+    }
+    if (!directText) {
+      const ariaLabel = el.getAttribute("aria-label")?.trim();
+      const title = el.getAttribute("title")?.trim();
+      if (ariaLabel) {
+        directText = maskBinaryBuffers(ariaLabel);
+      } else if (title) {
+        directText = maskBinaryBuffers(title);
+      } else if (el.children.length === 0 && el.textContent) {
+        const trimmed = el.textContent.trim();
+        if (trimmed) directText = maskBinaryBuffers(trimmed);
+      }
     }
 
     const childElementIds: string[] = [];
